@@ -3,231 +3,217 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Tic Tac Toe - Seb-Creations</title>
+<title>Tic Tac Toe</title>
 <style>
   body {
     font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+    background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
     display: flex;
     flex-direction: column;
     align-items: center;
-    height: 100vh;
+    justify-content: start;
+    min-height: 100vh;
     margin: 0;
+    padding: 20px;
     color: #fff;
   }
   h1 {
-    margin-top: 1rem;
+    margin-bottom: 10px;
   }
-  #mode-toggle {
-    margin: 15px 0;
+  .btn-group {
+    margin-bottom: 20px;
   }
-  #mode-toggle button {
-    padding: 8px 15px;
-    margin: 0 5px;
-    border: none;
-    border-radius: 5px;
-    background: #fff;
-    color: #66a6ff;
-    font-weight: bold;
+  button {
     cursor: pointer;
+    border: none;
+    padding: 10px 20px;
+    margin: 0 5px;
+    font-size: 16px;
+    border-radius: 5px;
+    transition: background 0.3s ease;
   }
-  #mode-toggle button.active {
-    background: #004aad;
+  .btn-primary {
+background-color: #004aad;
     color: white;
   }
-  #game {
+  .btn-primary.active {
+    background-color: #002d6a;
+  }
+  .btn-secondary {
+    background-color: #e0e0e0;
+    color: #333;
+  }
+  .board {
     display: grid;
     grid-template-columns: repeat(3, 100px);
     grid-template-rows: repeat(3, 100px);
     gap: 10px;
-    margin-bottom: 15px;
   }
   .cell {
     background: rgba(255, 255, 255, 0.3);
     border-radius: 10px;
-    font-size: 3rem;
+    font-size: 64px;
     display: flex;
     align-items: center;
-justify-content: center;
+    justify-content: center;
     cursor: pointer;
     user-select: none;
   }
-  #message {
-    font-size: 1.2rem;
-    margin-bottom: 15px;
-    min-height: 24px;
+  .cell.disabled {
+    cursor: default;
   }
-  #audio-control {
-    margin-bottom: 20px;
-  }
-  #audio-control button {
-    padding: 8px 15px;
-    border: none;
-    border-radius: 5px;
-    background: #004aad;
+  #mute-btn {
+    margin-top: 30px;
+    background-color: #004aad;
     color: white;
-    cursor: pointer;
   }
   footer {
-    margin-top: auto;
-    padding: 10px;
-    font-size: 0.9rem;
-    color: #ddd;
+    margin-top: 40px;
+    font-size: 14px;
+    opacity: 0.7;
   }
 </style>
 </head>
 <body>
-
 <h1>Tic Tac Toe</h1>
-
-<div id="mode-toggle">
-  <button id="friendBtn" class="active">Play Friend</button>
-  <button id="aiBtn">Play AI</button>
+<div class="btn-group">
+  <button id="play-friend" class="btn-primary active">Play Friend</button>
+  <button id="play-ai" class="btn-secondary">Play AI</button>
 </div>
 
-<div id="game">
+<div class="board" id="board">
+  <!-- 9 cells -->
   <div class="cell" data-index="0"></div>
   <div class="cell" data-index="1"></div>
   <div class="cell" data-index="2"></div>
   <div class="cell" data-index="3"></div>
   <div class="cell" data-index="4"></div>
   <div class="cell" data-index="5"></div>
-  <div class="cell" data-index="6"></div>
+<div class="cell" data-index="6"></div>
   <div class="cell" data-index="7"></div>
   <div class="cell" data-index="8"></div>
 </div>
 
-<div id="message"></div>
-
-<div id="audio-control">
-  <button id="muteBtn">Mute Music</button>
-</div>
+<button id="mute-btn">Mute Music</button>
 
 <footer>Developed by Seb-Creations</footer>
 
-<audio id="bgMusic" loop>
-<source src="https://assets.codepen.io/3/Beats+Loop+Intro+_+Groove+Loop+6.mp3" type="audio/mpeg" />
-  Your browser does not support the audio element.
-</audio>
+<audio id="bg-music" src="https://assets.codepen.io/3/beat.mp3" loop autoplay></audio>
 
 <script>
+  const board = document.getElementById('board');
   const cells = document.querySelectorAll('.cell');
-  const message = document.getElementById('message');
-  const friendBtn = document.getElementById('friendBtn');
-  const aiBtn = document.getElementById('aiBtn');
-  const muteBtn = document.getElementById('muteBtn');
-  const bgMusic = document.getElementById('bgMusic');
+  const playFriendBtn = document.getElementById('play-friend');
+  const playAiBtn = document.getElementById('play-ai');
+  const muteBtn = document.getElementById('mute-btn');
+  const bgMusic = document.getElementById('bg-music');
 
-  let board = Array(9).fill('');
-  let currentPlayer = 'X';
-  let gameActive = true;
-  let vsAI = false;
+  let boardState = ["", "", "", "", "", "", "", "", ""];
+  let currentPlayer = "X";
+  let isGameActive = true;
+  let playAI = false;
 
-  // Start music
-  bgMusic.volume = 0.3;
-  bgMusic.play();
+  const winningConditions = [
+    [0,1,2], [3,4,5], [6,7,8], // Rows
+    [0,3,6], [1,4,7], [2,5,8], // Columns
+    [0,4,8], [2,4,6]           // Diagonals
+  ];
 
-  muteBtn.addEventListener('click', () => {
-    if (bgMusic.paused) {
-      bgMusic.play();
-      muteBtn.textContent = 'Mute Music';
-    } else {
-      bgMusic.pause();
-      muteBtn.textContent = 'Unmute Music';
+  function handleResultValidation() {
+    let roundWon = false;
+    for(let i=0; i < winningConditions.length; i++) {
+      const [a, b, c] = winningConditions[i];
+      if(boardState[a] && boardState[a] === boardState[b] && boardState[a] === boardState[c]){
+        roundWon = true;
+        break;
+      }
     }
-  });
-
-  friendBtn.addEventListener('click', () => {
-    vsAI = false;
-    resetGame();
-    friendBtn.classList.add('active');
-    aiBtn.classList.remove('active');
-    message.textContent = 'Play vs Friend: X starts!';
-  });
-
-  aiBtn.addEventListener('click', () => {
-    vsAI = true;
-    resetGame();
-    aiBtn.classList.add('active');
-    friendBtn.classList.remove('active');
-message.textContent = 'Play vs AI: You are X, your turn!';
-  });
-
-  cells.forEach(cell => cell.addEventListener('click', cellClicked));
-
-  function cellClicked(e) {
-    const index = e.target.getAttribute('data-index');
-    if (board[index] !== '' || !gameActive) return;
-
-    makeMove(index, currentPlayer);
-
-    if (checkWin(currentPlayer)) {
-      gameActive = false;
-      message.textContent = `currentPlayer wins¡;
-      return;
+    if(roundWon){
+alert(`Player currentPlayer wins¡);
+      isGameActive = false;
+      return true;
     
-    if (board.every(cell => cell !== ”)) 
-      gameActive = false;
-      message.textContent = 'Draw!';
-      return;
+    if(!boardState.includes(""))
+      alert("Game is a draw!");
+      isGameActive = false;
+      return true;
+    
+    return false;
+  
+
+  function changePlayer() 
+    currentPlayer = currentPlayer === "X" ? "O" : "X";
+  
+
+  function userAction(cell, index) 
+    if(boardState[index] !== "" || !isGameActive) return;
+
+    updateCell(cell, index);
+    if(handleResultValidation()) return;
+
+    if(playAI        currentPlayer === "O")
+      aiTurn();
+     else 
+      changePlayer();
     
 
-    if (vsAI) 
-      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-      message.textContent = "AI's turn...";
-      setTimeout(() => 
-        const aiMove = getBestMove();
-        makeMove(aiMove, currentPlayer);
-        if (checkWin(currentPlayer)) 
-          gameActive = false;
-          message.textContent = `{currentPlayer} wins!`;
-          return;
-        }
-        if (board.every(cell => cell !== '')) {
-          gameActive = false;
-          message.textContent = 'Draw!';
-          return;
-        }
-        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-        message.textContent = 'Your turn!';
-      }, 700);
-    } else {
-      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-message.textContent = `Player ${currentPlayer}'s turn`;
-    }
-  }
+  function updateCell(cell, index) 
+    boardState[index] = currentPlayer;
+    cell.textContent = currentPlayer;
+  
 
-  function makeMove(index, player) {
-    board[index] = player;
-    cells[index].textContent = player;
-  }
+  function aiTurn() 
+    // simple AI: pick random empty cell
+    let emptyIndices = boardState.map((val, idx) => val === "" ? idx : null).filter(val => val !== null);
+    if(emptyIndices.length === 0) return;
+    let choice = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
 
-  function checkWin(player) {
-    const winConditions = [
-      [0,1,2], [3,4,5], [6,7,8], // rows
-      [0,3,6], [1,4,7], [2,5,8], // cols
-      [0,4,8], [2,4,6]           // diagonals
-    ];
-
-    return winConditions.some(condition =>
-      condition.every(i => board[i] === player)
-    );
-  }
-
-  function getBestMove() {
-    // Simple AI: random available cell (for demo simplicity)
-    const emptyIndices = board.map((val, idx) => val === '' ? idx : null).filter(i => i !== null);
-    return emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+    const cell = document.querySelector(`.cell[data-index='{choice}']`);
+    updateCell(cell, choice);
+    if(handleResultValidation()) return;
+    changePlayer();
   }
 
   function resetGame() {
-    board.fill('');
-    cells.forEach(cell => (cell.textContent = ''));
-    gameActive = true;
-    currentPlayer = 'X';
-    message.textContent = vsAI ? 'Play vs AI: You are X, your turn!' : 'Play vs Friend: X starts!';
+    boardState = ["", "", "", "", "", "", "", "", ""];
+    currentPlayer = "X";
+    isGameActive = true;
+cells.forEach(cell => cell.textContent = "");
   }
-</script>
 
+  cells.forEach((cell, index) => {
+    cell.addEventListener('click', () => userAction(cell, index));
+  });
+
+  playFriendBtn.addEventListener('click', () => {
+    playAI = false;
+    resetGame();
+    playFriendBtn.classList.add('active');
+    playAiBtn.classList.remove('active');
+  });
+
+  playAiBtn.addEventListener('click', () => {
+    playAI = true;
+    resetGame();
+    playAiBtn.classList.add('active');
+    playFriendBtn.classList.remove('active');
+
+    // if AI goes first (O), trigger AI turn if needed
+    if(currentPlayer === "O"){
+      aiTurn();
+    }
+  });
+
+  muteBtn.addEventListener('click', () => {
+    if(bgMusic.paused){
+      bgMusic.play();
+      muteBtn.textContent = "Mute Music";
+    } else {
+      bgMusic.pause();
+      muteBtn.textContent = "Unmute Music";
+    }
+  });
+
+</script>
 </body>
-</html>
+  </html>

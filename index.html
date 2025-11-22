@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tic Tac Toe - Seb-Creations</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    color: #fff;
+  }
+  h1 {
+    margin-top: 1rem;
+  }
+  #mode-toggle {
+    margin: 15px 0;
+  }
+  #mode-toggle button {
+    padding: 8px 15px;
+    margin: 0 5px;
+    border: none;
+    border-radius: 5px;
+    background: #fff;
+    color: #66a6ff;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  #mode-toggle button.active {
+    background: #004aad;
+    color: white;
+  }
+  #game {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-template-rows: repeat(3, 100px);
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+  .cell {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    font-size: 3rem;
+    display: flex;
+    align-items: center;
+justify-content: center;
+    cursor: pointer;
+    user-select: none;
+  }
+  #message {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    min-height: 24px;
+  }
+  #audio-control {
+    margin-bottom: 20px;
+  }
+  #audio-control button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    background: #004aad;
+    color: white;
+    cursor: pointer;
+  }
+  footer {
+    margin-top: auto;
+    padding: 10px;
+    font-size: 0.9rem;
+    color: #ddd;
+  }
+</style>
+</head>
+<body>
+
+<h1>Tic Tac Toe</h1>
+
+<div id="mode-toggle">
+  <button id="friendBtn" class="active">Play Friend</button>
+  <button id="aiBtn">Play AI</button>
+</div>
+
+<div id="game">
+  <div class="cell" data-index="0"></div>
+  <div class="cell" data-index="1"></div>
+  <div class="cell" data-index="2"></div>
+  <div class="cell" data-index="3"></div>
+  <div class="cell" data-index="4"></div>
+  <div class="cell" data-index="5"></div>
+  <div class="cell" data-index="6"></div>
+  <div class="cell" data-index="7"></div>
+  <div class="cell" data-index="8"></div>
+</div>
+
+<div id="message"></div>
+
+<div id="audio-control">
+  <button id="muteBtn">Mute Music</button>
+</div>
+
+<footer>Developed by Seb-Creations</footer>
+
+<audio id="bgMusic" loop>
+<source src="https://assets.codepen.io/3/Beats+Loop+Intro+_+Groove+Loop+6.mp3" type="audio/mpeg" />
+  Your browser does not support the audio element.
+</audio>
+
+<script>
+  const cells = document.querySelectorAll('.cell');
+  const message = document.getElementById('message');
+  const friendBtn = document.getElementById('friendBtn');
+  const aiBtn = document.getElementById('aiBtn');
+  const muteBtn = document.getElementById('muteBtn');
+  const bgMusic = document.getElementById('bgMusic');
+
+  let board = Array(9).fill('');
+  let currentPlayer = 'X';
+  let gameActive = true;
+  let vsAI = false;
+
+  // Start music
+  bgMusic.volume = 0.3;
+  bgMusic.play();
+
+  muteBtn.addEventListener('click', () => {
+    if (bgMusic.paused) {
+      bgMusic.play();
+      muteBtn.textContent = 'Mute Music';
+    } else {
+      bgMusic.pause();
+      muteBtn.textContent = 'Unmute Music';
+    }
+  });
+
+  friendBtn.addEventListener('click', () => {
+    vsAI = false;
+    resetGame();
+    friendBtn.classList.add('active');
+    aiBtn.classList.remove('active');
+    message.textContent = 'Play vs Friend: X starts!';
+  });
+
+  aiBtn.addEventListener('click', () => {
+    vsAI = true;
+    resetGame();
+    aiBtn.classList.add('active');
+    friendBtn.classList.remove('active');
+message.textContent = 'Play vs AI: You are X, your turn!';
+  });
+
+  cells.forEach(cell => cell.addEventListener('click', cellClicked));
+
+  function cellClicked(e) {
+    const index = e.target.getAttribute('data-index');
+    if (board[index] !== '' || !gameActive) return;
+
+    makeMove(index, currentPlayer);
+
+    if (checkWin(currentPlayer)) {
+      gameActive = false;
+      message.textContent = `currentPlayer wins¡;
+      return;
+    
+    if (board.every(cell => cell !== ”)) 
+      gameActive = false;
+      message.textContent = 'Draw!';
+      return;
+    
+
+    if (vsAI) 
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      message.textContent = "AI's turn...";
+      setTimeout(() => 
+        const aiMove = getBestMove();
+        makeMove(aiMove, currentPlayer);
+        if (checkWin(currentPlayer)) 
+          gameActive = false;
+          message.textContent = `{currentPlayer} wins!`;
+          return;
+        }
+        if (board.every(cell => cell !== '')) {
+          gameActive = false;
+          message.textContent = 'Draw!';
+          return;
+        }
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        message.textContent = 'Your turn!';
+      }, 700);
+    } else {
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+message.textContent = `Player ${currentPlayer}'s turn`;
+    }
+  }
+
+  function makeMove(index, player) {
+    board[index] = player;
+    cells[index].textContent = player;
+  }
+
+  function checkWin(player) {
+    const winConditions = [
+      [0,1,2], [3,4,5], [6,7,8], // rows
+      [0,3,6], [1,4,7], [2,5,8], // cols
+      [0,4,8], [2,4,6]           // diagonals
+    ];
+
+    return winConditions.some(condition =>
+      condition.every(i => board[i] === player)
+    );
+  }
+
+  function getBestMove() {
+    // Simple AI: random available cell (for demo simplicity)
+    const emptyIndices = board.map((val, idx) => val === '' ? idx : null).filter(i => i !== null);
+    return emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+  }
+
+  function resetGame() {
+    board.fill('');
+    cells.forEach(cell => (cell.textContent = ''));
+    gameActive = true;
+    currentPlayer = 'X';
+    message.textContent = vsAI ? 'Play vs AI: You are X, your turn!' : 'Play vs Friend: X starts!';
+  }
+</script>
+
+</body>
+</html>

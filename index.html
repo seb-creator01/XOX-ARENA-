@@ -1,493 +1,501 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Tic-Tac-Toe by Seb-Creations</title>
-<style>
-  body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
-    margin: 0;
-    padding: 20px;
-  }
-  h1 {
-    margin-bottom: 5px;
-  }
-  #board {
-    display: grid;
-    grid-template-columns: repeat(3, 100px);
-    grid-gap: 10px;
-    margin: 20px 0;
-    position: relative;
-  }
-  .cell {
-    width: 100px;
-    height: 100px;
-    background: rgba(255,255,255,0.2);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 48px;
-    font-weight: bold;
-    cursor: pointer;
-    border-radius: 10px;
-    transition: background 0.3s;
-  }
-  .cell:hover {
-    background: rgba(255,255,255,0.4);
-  }
-  .disabled {
-    pointer-events: none;
-    opacity: 0.6;
-  }
-  #status {
-    margin: 10px 0;
-    font-size: 1.2rem;
-    min-height: 24px;
-    font-weight: bold;
-  }
-  #status span {
-    display: inline-block;
-    min-width: 30px; 
-    text-align: center;
-    margin-right: 5px;
-  }
-  #timer {
-    margin: 10px 0;
-    font-size: 1.1rem;
-    color: #ffcc80; 
-    font-weight: bold;
-  }
-  #scoreboard {
-    margin: 10px 0 30px;
-    font-size: 1rem;
-  }
-  #controls {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 15px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  select, button {
-    padding: 10px 15px;
-    font-size: 1rem;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-  }
-  button {
-    background: #2575fc;
-    color: white;
-    transition: background 0.3s;
-  }
-  button:hover {
-    background: #6a11cb;
-  }
-  #mute-btn {
-    background: #444;
-  }
-  footer {
-    margin-top: auto;
-    font-size: 0.9rem;
-    color: #ddd;
-  }
-  #link-section {
-    margin: 15px 0;
-    font-size: 0.9rem;
-    word-break: break-word;
-    background: rgba(255,255,255,0.2);
-    padding: 10px;
-    border-radius: 10px;
-    max-width: 320px;
-    text-align: center;
-  }
-
-  /* --- WINNING LINE STYLES --- */
-  .winning-line {
-    position: absolute;
-    background: #ff4081;
-    z-index: 10;
-    pointer-events: none;
-    opacity: 0.8;
-  }
-
-  /* Line dimensions for 3x3 grid */
-  .line-row-0, .line-row-1, .line-row-2 { height: 10px; width: 320px; left: -10px; }
-  .line-col-0, .line-col-1, .line-col-2 { width: 10px; height: 320px; top: -10px; }
-  .line-diag-1, .line-diag-2 { height: 10px; width: 450px; } 
-
-  .line-row-0 { top: 45px; }
-  .line-row-1 { top: 155px; }
-  .line-row-2 { top: 265px; }
-
-  .line-col-0 { left: 45px; }
-  .line-col-1 { left: 155px; }
-  .line-col-2 { left: 265px; }
-
-  .line-diag-1 { 
-    top: 155px; left: -65px; 
-    transform: rotate(45deg); 
-  }
-  .line-diag-2 { 
-    top: 155px; left: -65px; 
-    transform: rotate(-45deg); 
-  }
-
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tic-Tac-Toe Online Pro</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      text-align: center;
+      color: white;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      margin-bottom: 5px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    #score {
+      font-size: 1.2em;
+      margin: 10px 0 20px;
+      padding: 5px 15px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 5px;
+    }
+    #controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .btn, #difficulty-select {
+      padding: 10px 15px;
+      font-size: 1em;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      background: #34495e; /* Darker blue-grey */
+      color: white;
+      transition: background 0.3s, transform 0.1s;
+    }
+    .btn:hover, #difficulty-select:hover {
+      background: #4e6d8d;
+      transform: translateY(-2px);
+    }
+    #muteBtn {
+      background: #c0392b; /* Red */
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      gap: 10px;
+      justify-content: center;
+      margin: 20px auto;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+    .cell {
+      width: 100px;
+      height: 100px;
+      background: #ecf0f1; /* Light grey */
+      color: #333;
+      font-size: 3em;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .cell:hover {
+      background: #bdc3c7;
+    }
+    .cell.win {
+      background: #2ecc71; /* Green */
+      color: white;
+      animation: flashWin 0.5s 3;
+    }
+    @keyframes flashWin {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    /* --- Chat Styling --- */
+    #chat-container {
+        width: 320px;
+        margin-top: 30px;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 15px;
+        border-radius: 10px;
+        display: none; /* Initially hidden */
+    }
+    #chat-messages {
+        height: 150px;
+        overflow-y: auto;
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 5px;
+        text-align: left;
+        font-size: 0.9em;
+    }
+    #chat-input-container {
+        display: flex;
+        gap: 5px;
+    }
+    #chat-input {
+        flex-grow: 1;
+        padding: 8px;
+        border-radius: 5px;
+        border: none;
+    }
+    #send-btn {
+        padding: 8px 12px;
+        background: #3498db;
+    }
+    footer {
+      margin-top: auto;
+      padding-top: 20px;
+      font-size: 0.9em;
+      color: #ccc;
+    }
+  </style>
 </head>
 <body>
+  <h1>Tic-Tac-Toe Online Pro</h1>
+  <div id="score">X: 0 | O: 0 | Draws: 0</div>
 
-<h1>Tic-Tac-Toe</h1>
-<div id="timer"></div>
-<div id="status">Loading...</div>
+  <div id="controls">
+    <select id="difficulty-select">
+      <option value="easy">Easy AI</option>
+      <option value="normal">Normal AI</option>
+      <option value="hard">Hard AI</option>
+    </select>
+    <button class="btn" onclick="startGame('ai')">Play vs AI</button>
+    <button class="btn" onclick="startGame('local')">Two Players (Local)</button>
+    <button class="btn" onclick="startGame('online')">Online Multiplayer</button>
+    <button class="btn" id="muteBtn" onclick="toggleMusic()">🔊 Mute</button>
+    <button class="btn" onclick="clearScores()">Clear Scores</button>
+  </div>
+  
+  <div id="board"></div>
 
-<div id="controls">
-  <select id="mode-select" title="Select Mode">
-    <option value="single">Play vs AI</option>
-    <option value="local">Two Players (Local)</option>
-    <option value="online">Play Online</option>
-  </select>
-  <select id="difficulty-select" title="AI Difficulty (only for AI mode)">
-    <option value="easy">Easy</option>
-    <option value="normal" selected>Normal</option>
-    <option value="hard">Hard</option>
-  </select>
-  <button id="reset-btn">Reset Game</button>
-  <button id="mute-btn">🔊 Mute</button>
-</div>
+  <div id="chat-container">
+    <h2>Online Chat</h2>
+    <div id="chat-messages"></div>
+    <div id="chat-input-container">
+        <input type="text" id="chat-input" placeholder="Type message..." maxlength="100" disabled>
+        <button class="btn" id="send-btn" onclick="sendMessage()" disabled>Send</button>
+    </div>
+  </div>
 
-<div id="board"></div>
+  <footer>Developed by Seb-Creations</footer>
 
-<div id="scoreboard">
-  <div>Player X Wins: <span id="x-wins">0</span></div>
-  <div>Player O Wins: <span id="o-wins">0</span></div>
-  <div>Draws: <span id="draws">0</span></div>
-</div>
+  <audio id="bgMusic" loop>
+    <source src="https://opengameart.org/sites/default/files/Happy%20Ukulele%20Background%20Music.mp3" type="audio/mpeg" />
+  </audio>
 
-<div id="link-section" style="display:none;">
-  Share this link to play online:<br />
-  <a href="#" target="_blank" id="game-link"></a>
-</div>
-
-<footer>Developed by Seb-Creations</footer>
-
-<audio id="bg-music" loop>
-  <source src="https://opengameart.org/sites/default/files/Happy%20Ukulele%20Background%20Music.mp3" type="audio/mpeg" />
-</audio>
-
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-
-<script>
-  // Your Firebase config
-  const firebaseConfig = {
-    apiKey: "AIzaSyAFUoT40IjaiqH2791QvyNUP6SakHarupY",
-    authDomain: "tic-tac-toe-9e69d.firebaseapp.com",
-    databaseURL: "https://tic-tac-toe-9e69d-default-rtdb.firebaseio.com",
-    projectId: "tic-tac-toe-9e69d",
-    storageBucket: "tic-tac-toe-9e69d.appspot.com",
-    messagingSenderId: "279666476240",
-    appId: "1:279666476240:web:106c4481fbda677424cad5"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-
-  // --- GLOBAL GAME VARIABLES ---
-  const boardEl = document.getElementById('board');
-  const statusEl = document.getElementById('status');
-  const xWinsEl = document.getElementById('x-wins');
-  const oWinsEl = document.getElementById('o-wins');
-  const drawsEl = document.getElementById('draws');
-  const resetBtn = document.getElementById('reset-btn');
-  const modeSelect = document.getElementById('mode-select');
-  const difficultySelect = document.getElementById('difficulty-select');
-  const linkSection = document.getElementById('link-section');
-  const gameLink = document.getElementById('game-link');
-  const muteBtn = document.getElementById('mute-btn');
-  const bgMusic = document.getElementById('bg-music');
-  const timerEl = document.getElementById('timer');
-
-  let board = ["", "", "", "", "", "", "", "", ""];
-  let currentPlayer = "X";
-  let gameActive = true;
-  let scores = { X: 0, O: 0, draw: 0 };
-
-  let isOnline = false;
-  let gameId = null;
-  let playerSymbol = null;
-  let difficulty = 'normal';
-  let muted = false;
-
-  let timerInterval;
-  const turnTimeLimit = 10; 
-
-  // Winning combos mapped to CSS line classes for strike-through
-  const winningCombos = [
-    { combo: [0, 1, 2], lineClass: 'line-row-0' },
-    { combo: [3, 4, 5], lineClass: 'line-row-1' },
-    { combo: [6, 7, 8], lineClass: 'line-row-2' },
-    { combo: [0, 3, 6], lineClass: 'line-col-0' },
-    { combo: [1, 4, 7], lineClass: 'line-col-1' },
-    { combo: [2, 5, 8], lineClass: 'line-col-2' },
-    { combo: [0, 4, 8], lineClass: 'line-diag-1' },
-    { combo: [2, 4, 6], lineClass: 'line-diag-2' }
-  ];
-
-
-  // --- INITIALIZATION AND EVENT LISTENERS ---
-
-  // UPDATED: Removed score clearing logic from resetBtn
-  resetBtn.addEventListener('click', () => {
-    resetGameLocal();
-    // Logic for online reset would still go here
-  });
-  modeSelect.addEventListener('change', initializeGameMode);
-  difficultySelect.addEventListener('change', () => difficulty = difficultySelect.value);
-  muteBtn.addEventListener('click', toggleMute);
-
-  function init() {
-    createBoard();
-    updateScores();
-    initializeGameMode();
-  }
-  init();
-
-
-  // --- CORE GAME LOGIC ---
-
-  function createBoard() {
-    boardEl.innerHTML = '';
-    for (let i = 0; i < 9; i++) {
-      const cell = document.createElement('div');
-      cell.classList.add('cell');
-      cell.dataset.index = i;
-      cell.addEventListener('click', () => handleCellClick(i));
-      boardEl.appendChild(cell);
-    }
-  }
-
-  function handleCellClick(index) {
-    if (!gameActive || board[index] !== "") return;
-
-    const mode = modeSelect.value;
-    let allowedToMove = false;
-
-    if (mode === 'single') { allowedToMove = currentPlayer === 'X'; } 
-    else if (mode === 'local') { allowedToMove = true; } 
-    else if (mode === 'online') { allowedToMove = currentPlayer === playerSymbol; }
-
-    if (allowedToMove) {
-      makeMove(index, currentPlayer);
-    }
-  }
-
-  function makeMove(index, symbol) {
-    if (!gameActive || board[index] !== "") return;
-
-    board[index] = symbol;
-    updateBoardUI();
-
-    const winInfo = checkWin(symbol);
-    if (winInfo) {
-      endGame(symbol, winInfo.lineClass);
-    } else if (checkDraw()) {
-      endGame('draw');
-    } else {
-      switchPlayer();
-      startTimer();
-
-      if (modeSelect.value === 'single' && currentPlayer === 'O') {
-        setTimeout(aiMove, 500);
-      }
-    }
-  }
-
-  // End the game
-  function endGame(winner, lineClass) {
-    gameActive = false;
-    clearInterval(timerInterval);
-    timerEl.textContent = '';
-
-    if (winner === 'draw') {
-      scores.draw++;
-      updateStatus("It's a Draw!");
-    } else {
-      scores[winner]++;
-      updateStatus(`Player ${winner} Wins!`);
-      highlightWinningCells(lineClass);
-    }
-    updateScores();
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     
-    // Auto-reset after 2 seconds to prepare for next game, keeping score
-    setTimeout(resetGameLocal, 2000); 
-  }
+    // --- FIREBASE CONFIGURATION ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyAFUoT40IjaiqH2791QvyNUP6SakHarupY",
+      authDomain: "tic-tac-toe-9e69d.firebaseapp.com",
+      databaseURL: "https://tic-tac-toe-9e69d-default-rtdb.firebaseio.com/",
+      projectId: "tic-tac-toe-9e69d",
+      storageBucket: "tic-tac-toe-9e69d.appspot.com",
+      messagingSenderId: "279666476240",
+      appId: "1:279666476240:web:106c4481fbda677424cad5",
+      measurementId: "G-WQV8NJN397"
+    };
 
-  function highlightWinningCells(lineClass) {
-    const line = document.createElement('div');
-    line.classList.add('winning-line', lineClass);
-    boardEl.appendChild(line);
-  }
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
+    // --- DOM REFERENCES ---
+    const boardEl = document.getElementById('board');
+    const scoreEl = document.getElementById('score');
+    const bgMusic = document.getElementById('bgMusic');
+    const difficultySelect = document.getElementById('difficulty-select');
+    const chatContainer = document.getElementById('chat-container');
+    const chatMessagesEl = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
 
-  // --- UTILITY FUNCTIONS ---
+    // --- GLOBAL GAME STATE ---
+    let currentPlayer = 'X';
+    let board = Array(9).fill('');
+    let mode = 'local';
+    let difficulty = 'normal';
+    let score = { X: 0, O: 0, draw: 0 };
+    let gameActive = true;
+    let gameRef = null; // Firebase reference for the current game
+    let playerSymbol = null; // 'X' or 'O' for online mode
+    let muted = false;
 
-  function updateBoardUI() {
-    boardEl.querySelectorAll('.winning-line').forEach(line => line.remove());
+    // --- CORE GAME FUNCTIONS ---
 
-    boardEl.querySelectorAll('.cell').forEach(cell => {
-      cell.textContent = board[cell.dataset.index];
-    });
-  }
-
-  function checkWin(player) {
-    return winningCombos.find(combo =>
-      combo.combo.every(index => board[index] === player)
-    );
-  }
-
-  function checkDraw() {
-    return board.every(cell => cell !== "");
-  }
-
-  function switchPlayer() {
-    currentPlayer = currentPlayer === "X" ? "O" : "X";
-    updateStatus(`'s turn`);
-  }
-
-  function updateStatus(text) {
-    let symbolIndicator = '';
-    if (gameActive) {
-      symbolIndicator = `<span style="color: ${currentPlayer === 'X' ? '#ff4081' : '#448aff'}; font-size: 1.5em;">${currentPlayer}</span>`;
-    }
-    statusEl.innerHTML = `${symbolIndicator} ${text}`;
-  }
-
-  function updateScores() {
-    xWinsEl.textContent = scores.X;
-    oWinsEl.textContent = scores.O;
-    drawsEl.textContent = scores.draw;
-  }
-
-  // Resets board only, preserves scores
-  function resetGameLocal() {
-    board.fill("");
-    gameActive = true;
-    currentPlayer = "X";
-    updateBoardUI();
-    updateStatus(`'s turn`);
-    
-    // Only start timer if not in online mode
-    if (modeSelect.value !== 'online') {
-        startTimer();
-    } else {
-        clearInterval(timerInterval);
-        timerEl.textContent = '';
-    }
-  }
-
-
-  // --- TIMER FUNCTIONS ---
-  function startTimer() {
-    if (modeSelect.value === 'online' || !gameActive) {
-      clearInterval(timerInterval);
-      timerEl.textContent = '';
-      return;
-    }
-
-    clearInterval(timerInterval);
-    let timeLeft = turnTimeLimit;
-    timerEl.textContent = `Time left for ${currentPlayer}: ${timeLeft}s`;
-
-    timerInterval = setInterval(() => {
-      timeLeft--;
-      timerEl.textContent = `Time left for ${currentPlayer}: ${timeLeft}s`;
-
-      if (timeLeft <= 0) {
-        clearInterval(timerInterval);
-        const winner = currentPlayer === "X" ? "O" : "X";
-        updateStatus(`Time's up! Player ${currentPlayer} forfeits.`);
-        endGame(winner); 
-      }
-    }, 1000);
-  }
-
-
-  // --- MODE AND MUSIC FUNCTIONS (UPDATED Online Logic) ---
-
-  function initializeGameMode() {
-    const mode = modeSelect.value;
-    difficultySelect.disabled = mode !== 'single';
-    isOnline = mode === 'online';
-
-    resetGameLocal();
-    
-    if (mode === 'online') {
-        // 1. Generate a unique game ID (using Firebase push key)
-        const newGameRef = db.ref('games').push();
-        gameId = newGameRef.key;
-        
-        // 2. Set the initial game state in Firebase
-        newGameRef.set({
-            board: board,
-            currentPlayer: 'X',
-            gameActive: true,
-            playerX: 'host',
-            playerO: null,
-        });
-        playerSymbol = 'X';
-
-        // 3. Create the sharable URL
-        const shareURL = `${window.location.href.split('?')[0]}?game=${gameId}`;
-        
-        // 4. Display the link section
-        gameLink.href = shareURL;
-        gameLink.textContent = shareURL;
-        linkSection.style.display = 'block'; 
-
-        updateStatus(`Waiting for opponent. Share the link!`);
-        clearInterval(timerInterval);
-        timerEl.textContent = '';
-    } else {
-        linkSection.style.display = 'none';
-        startTimer();
-    }
-  }
-
-  function toggleMute() {
-    muted = !muted;
-    if (muted) {
-      bgMusic.pause();
-      muteBtn.textContent = '🔇 Unmute';
-    } else {
-      bgMusic.play().catch(e => {
-        console.log('Music play failed:', e);
+    function drawBoard() {
+      boardEl.innerHTML = '';
+      board.forEach((cell, i) => {
+        const div = document.createElement('div');
+        div.className = 'cell';
+        div.innerText = cell;
+        div.onclick = () => handleMove(i);
+        boardEl.appendChild(div);
       });
-      muteBtn.textContent = '🔊 Mute';
-    }
-  }
-
-  // --- AI LOGIC ---
-
-  function aiMove() {
-    if (!gameActive) return;
-    let moveIndex;
-    const emptyIndices = board.map((v, i) => v === "" ? i : -1).filter(i => i !== -1);
-
-    if (difficulty === 'easy' || difficulty === 'normal' || difficulty === 'hard') {
-      moveIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+      scoreEl.textContent = `X: ${score.X} | O: ${score.O} | Draws: ${score.draw}`;
     }
 
-    if (moveIndex !== undefined) {
-      makeMove(moveIndex, 'O');
+    function handleMove(index) {
+      if (!gameActive || board[index]) return;
+
+      // Online check: Only allow move if it is your turn and your symbol
+      if (mode === 'online' && currentPlayer !== playerSymbol) {
+        alert("It's not your turn!");
+        return;
+      }
+      
+      board[index] = currentPlayer;
+      
+      const win = checkWin();
+      if (win) {
+        endGame(currentPlayer, win);
+      } else if (board.every(cell => cell !== '')) {
+        endGame('draw');
+      } else {
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        updateBoard();
+
+        if (mode === 'ai' && currentPlayer === 'O') {
+          setTimeout(aiMove, 500);
+        }
+      }
     }
-  }
-</script>
+
+    function endGame(winner, winCombo = null) {
+        gameActive = false;
+        if (winner === 'draw') {
+            score.draw++;
+            alert("Draw!");
+        } else {
+            score[winner]++;
+            alert(`Player ${winner} wins!`);
+            // Apply win class to winning cells
+            if (winCombo) {
+                winCombo.forEach(i => {
+                    document.querySelectorAll('.cell')[i].classList.add('win');
+                });
+            }
+        }
+        
+        // Update score display and Firebase
+        updateBoard(); 
+        
+        // Wait a moment then reset the board only, preserving the score
+        setTimeout(resetBoard, 2000); 
+    }
+
+    function checkWin() {
+      const wins = [
+        [0,1,2], [3,4,5], [6,7,8],
+        [0,3,6], [1,4,7], [2,5,8],
+        [0,4,8], [2,4,6]
+      ];
+      const combo = wins.find(combo => {
+        const [a,b,c] = combo;
+        return board[a] && board[a] === board[b] && board[a] === board[c];
+      });
+      return combo || null;
+    }
+
+    function resetBoard() {
+      board = Array(9).fill('');
+      currentPlayer = 'X';
+      gameActive = true;
+      drawBoard();
+    }
+
+    // --- AI LOGIC (WITH DIFFICULTY) ---
+
+    function aiMove() {
+      let empty = board.map((v, i) => v === '' ? i : null).filter(v => v !== null);
+      if (empty.length === 0) return;
+
+      let move;
+      difficulty = difficultySelect.value;
+      
+      if (difficulty === 'easy') {
+        // Easy: Always random move
+        move = empty[Math.floor(Math.random() * empty.length)];
+      } else if (difficulty === 'normal') {
+        // Normal: 50% chance to block/win, 50% random
+        if (Math.random() < 0.5) {
+             move = findBestMove(true); // Try to find a winning move or block
+        }
+        if (!move) {
+             move = empty[Math.floor(Math.random() * empty.length)];
+        }
+      } else if (difficulty === 'hard') {
+        // Hard: Minimax placeholder (always finds the best available move)
+        move = findBestMove(false);
+        if (!move) {
+             move = empty[Math.floor(Math.random() * empty.length)];
+        }
+      }
+      
+      // Execute the move
+      setTimeout(() => handleMove(move), 500);
+    }
+    
+    // Simple look-ahead function for Normal/Hard AI
+    function findBestMove(isNormal) {
+        const opponent = currentPlayer === 'X' ? 'O' : 'X';
+        const empty = board.map((v, i) => v === '' ? i : null).filter(v => v !== null);
+
+        // 1. Check for a winning move for AI (O)
+        for (let i of empty) {
+            board[i] = 'O';
+            if (checkWin()) {
+                board[i] = ''; return i;
+            }
+            board[i] = '';
+        }
+        
+        // 2. Check for a block (Player X's winning move)
+        for (let i of empty) {
+            board[i] = 'X';
+            if (checkWin()) {
+                board[i] = ''; return i;
+            }
+            board[i] = '';
+        }
+        
+        // 3. (Hard only) Check center or corners (Simplified best move logic)
+        if (!isNormal) {
+            if (board[4] === '') return 4; // Center
+            for (let i of [0, 2, 6, 8]) {
+                if (board[i] === '') return i; // Corners
+            }
+        }
+
+        return null;
+    }
+
+    // --- FIREBASE ONLINE FUNCTIONS ---
+
+    function startGame(selectedMode) {
+      mode = selectedMode;
+      difficultySelect.style.display = (mode === 'ai' ? 'inline-block' : 'none');
+      chatContainer.style.display = (mode === 'online' ? 'block' : 'none');
+      
+      resetBoard();
+      
+      if (mode === 'online') {
+        // Simple game setup (creates/joins 'game1')
+        gameRef = ref(db, 'games/game1');
+        
+        // Check if game already exists
+        onValue(gameRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.board) {
+                // Game exists, player joins as 'O'
+                playerSymbol = 'O';
+                alert("Joined game as O! It is X's turn.");
+            } else {
+                // Game does not exist, player starts as 'X'
+                playerSymbol = 'X';
+                // Initialize game state on Firebase
+                set(gameRef, { 
+                    board: board, 
+                    currentPlayer: 'X',
+                    score: score,
+                    chat: [] // Initialize chat log
+                });
+                alert("Game created. You are X. Share the URL!");
+            }
+            
+            // Listen for changes from the server
+            onValue(gameRef, handleFirebaseUpdate);
+        }, { onlyOnce: true }); // Stop listening after the initial check
+
+        // Enable chat
+        chatInput.disabled = false;
+        sendBtn.disabled = false;
+        onValue(ref(db, 'games/game1/chat'), handleChatUpdate);
+
+      } else {
+        gameRef = null;
+        playerSymbol = null;
+        // Disable chat for local modes
+        chatInput.disabled = true;
+        sendBtn.disabled = true;
+      }
+    }
+    
+    function handleFirebaseUpdate(snapshot) {
+        const data = snapshot.val();
+        if (data) {
+            board = data.board || Array(9).fill('');
+            currentPlayer = data.currentPlayer || 'X';
+            score = data.score || { X: 0, O: 0, draw: 0 };
+            drawBoard();
+            if (!gameActive) {
+                // Re-evaluate win/draw to show end game screen if necessary
+                const win = checkWin();
+                if (win) endGame(currentPlayer === 'X' ? 'O' : 'X', win); // Opponent won
+                else if (board.every(cell => cell !== '')) endGame('draw');
+            }
+        }
+    }
+
+    function updateBoard() {
+      drawBoard();
+      if (mode === 'online' && gameRef) {
+        // Send updated board, current player, and score to Firebase
+        set(gameRef, { board: board, currentPlayer: currentPlayer, score: score, chat: null });
+      }
+    }
+    
+    // --- CHAT FUNCTIONS ---
+    
+    function sendMessage() {
+        const text = chatInput.value.trim();
+        if (text === "") return;
+
+        const chatRef = ref(db, 'games/game1/chat');
+        push(chatRef, {
+            sender: playerSymbol,
+            message: text,
+            timestamp: Date.now()
+        });
+        chatInput.value = '';
+    }
+    
+    function handleChatUpdate(snapshot) {
+        const messages = snapshot.val();
+        chatMessagesEl.innerHTML = '';
+        if (messages) {
+            // Convert messages object to array and sort by timestamp
+            const messageList = Object.values(messages).sort((a, b) => a.timestamp - b.timestamp);
+            
+            messageList.forEach(msg => {
+                const p = document.createElement('p');
+                const senderColor = msg.sender === 'X' ? 'color: #ffcc00;' : 'color: #3498db;';
+                p.innerHTML = `<strong style="${senderColor}">${msg.sender}:</strong> ${msg.message}`;
+                chatMessagesEl.appendChild(p);
+            });
+            // Scroll to bottom
+            chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+        }
+    }
+
+    // --- MISC / CONTROLS ---
+
+    function toggleMusic() {
+        muted = !muted;
+        const btn = document.getElementById('muteBtn');
+        if (muted) {
+            bgMusic.pause();
+            btn.innerHTML = '🔇 Unmute';
+        } else {
+            // Attempt play, relies on user interaction
+            bgMusic.play().catch(e => console.log('Music play failed:', e));
+            btn.innerHTML = '🔊 Mute';
+        }
+    }
+    
+    function clearScores() {
+        score = { X: 0, O: 0, draw: 0 };
+        updateBoard();
+        alert("Scores cleared!");
+    }
+
+    // Expose functions globally for HTML buttons
+    window.startGame = startGame;
+    window.handleMove = handleMove;
+    window.toggleMusic = toggleMusic;
+    window.clearScores = clearScores;
+    window.sendMessage = sendMessage;
+
+    // Initial setup
+    window.onload = () => {
+      drawBoard();
+      bgMusic.play().catch(e => console.log('Autoplay blocked. Click mute/unmute to start music.'));
+      difficultySelect.style.display = 'none'; // Hide difficulty initially
+    };
+  </script>
 </body>
 </html>

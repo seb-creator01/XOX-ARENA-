@@ -19,7 +19,7 @@
     }
 
     #controls button {
-        /* Base button styles */
+      /* Base button styles */
       padding: 10px 20px;
       margin: 5px;
       border: none;
@@ -32,15 +32,15 @@
     }
     
     #controls button.active {
-        /* Style for the currently active mode button */
-        background: #7f5af0; 
-        color: #fffffe;
-        border: 2px solid #2cb67d;
-        transform: scale(1.05);
+      /* Style for the currently active mode button */
+      background: #7f5af0; 
+      color: #fffffe;
+      border: 2px solid #2cb67d;
+      transform: scale(1.05);
     }
 
     #game-container {
-      /* Flex container to hold multiple boards, if needed. For now, it holds one. */
+      /* Container for the single game board */
       display: flex;
       justify-content: center;
       gap: 20px;
@@ -48,7 +48,7 @@
     }
 
     #game {
-      /* Main game board grid */
+      /* Main game board grid (3x3) */
       display: grid;
       grid-template-columns: repeat(3, 100px);
       grid-gap: 10px;
@@ -76,14 +76,15 @@
     }
     
     #online-scoreboard, #local-scoreboard {
-        display: inline-block;
-        padding: 10px 20px;
-        margin: 0 10px;
-        border-radius: 8px;
-        background: rgba(0, 0, 0, 0.2);
+      display: inline-block;
+      padding: 10px 20px;
+      margin: 0 10px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      text-align: left; /* Align scores left for better readability */
     }
     
-    #online-scoreboard p {
+    #online-scoreboard p, #local-scoreboard p {
         margin: 5px 0;
     }
 
@@ -95,19 +96,20 @@
 
     footer {
       margin-top: 40px;
-      font-size: 1.1rem; /* Made slightly larger */
+      font-size: 1.4rem; /* Increased visibility */
       color: #94a1b2;
+      font-weight: bold; /* Ensures the whole footer is very visible */
     }
     
     footer b {
-        color: #fffffe; /* Make the developer name stand out */
+        color: #fffffe; 
     }
 
     #onlineControls {
-        margin-top: 15px;
-        padding: 10px;
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 8px;
+      margin-top: 15px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
     }
   </style>
 </head>
@@ -135,6 +137,7 @@
           <h3>Local/AI Score</h3>
           <p>Player X: <span id="scoreX">0</span></p>
           <p>Player O: <span id="scoreO">0</span></p>
+          <p>Draws: <span id="scoreDraws">0</span></p>
       </div>
       
       <div id="online-scoreboard" style="display: none;">
@@ -146,10 +149,10 @@
   </div>
 
   <div id="game-container">
-      <div id="game"></div> 
-      </div>
+      <div id="game"></div>
+  </div>
 
-  <footer>Developed by <b>Seb-Creations</b></footer>
+  <footer>Developed by <b style="color: #2cb67d;">Seb-Creations</b></footer>
 
   <audio id="bgMusic" loop autoplay>
     <source src="https://www.bensound.com/bensound-music/bensound-sunny.mp3" type="audio/mp3">
@@ -188,6 +191,7 @@
     const gameDiv = document.getElementById('game');
     const scoreX = document.getElementById('scoreX');
     const scoreO = document.getElementById('scoreO');
+    const scoreDraws = document.getElementById('scoreDraws'); // AI Draw Counter
     const bgMusic = document.getElementById('bgMusic');
     const onlineControlsDiv = document.getElementById('onlineControls');
     const roomIdInput = document.getElementById('roomIdInput');
@@ -201,7 +205,6 @@
 
 
     /**
-     * Renamed function to drawBoard() as requested.
      * Renders the current state of the board array to the DOM.
      */
     function drawBoard() {
@@ -212,7 +215,7 @@
         cell.textContent = val;
         
         // Add win class if present in local state
-        const result = checkWinner();
+        const result = checkWinner(board);
         if (!gameActive && result.winningIndices && result.winningIndices.includes(i)) {
              cell.classList.add('winner');
         }
@@ -222,7 +225,7 @@
       
       // Update status for online play
       if (mode === 'online' && localPlayer) {
-          const result = checkWinner();
+          const result = checkWinner(board);
           if (!gameActive) {
              gameStatusP.textContent = `Game Over! ${result.winner === 'Draw' ? 'It\'s a Draw!' : `${result.winner} wins!`}`;
           } else {
@@ -245,13 +248,15 @@
       } else {
           board[index] = currentPlayer;
           drawBoard();
-          checkWinner();
+          checkWinner(board);
           currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
           if (mode === 'ai') aiMove();
       }
     }
 
-    function checkWinner() {
+    // Now accepts an optional board state for Minimax calculation
+    function checkWinner(currentBoard) {
+      currentBoard = currentBoard || board;
       const wins = [
         [0,1,2], [3,4,5], [6,7,8], // Rows
         [0,3,6], [1,4,7], [2,5,8], // Columns
@@ -262,24 +267,28 @@
       let winningIndices = null;
 
       for (let [a,b,c] of wins) {
-        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-          winner = board[a];
+        if (currentBoard[a] && currentBoard[a] === currentBoard[b] && currentBoard[a] === currentBoard[c]) {
+          winner = currentBoard[a];
           winningIndices = [a,b,c];
-          gameActive = false;
           
-          if (mode !== 'online') {
-             // Local/AI Mode: Apply win visuals and reset game
-             updateLocalScore(winner);
-             setTimeout(resetGame, 2000);
+          if (currentBoard === board) { // Only update global state if checking the main game board
+            gameActive = false;
+            if (mode !== 'online') {
+               updateLocalScore(winner);
+               setTimeout(resetGame, 2000);
+            }
           }
           return { winner, winningIndices };
         }
       }
 
-      if (!board.includes('')) {
-        gameActive = false;
-        if (mode !== 'online') {
-           setTimeout(resetGame, 2000);
+      if (!currentBoard.includes('')) {
+        if (currentBoard === board) {
+            gameActive = false;
+            if (mode !== 'online') {
+               updateLocalScore('Draw'); // Update score for draw
+               setTimeout(resetGame, 2000);
+            }
         }
         return { winner: 'Draw' };
       }
@@ -292,6 +301,7 @@
     function updateLocalScore(winner) {
       if (winner === 'X') scoreX.textContent = +scoreX.textContent + 1;
       else if (winner === 'O') scoreO.textContent = +scoreO.textContent + 1;
+      else if (winner === 'Draw') scoreDraws.textContent = +scoreDraws.textContent + 1;
     }
     
     function updateOnlineScoreboard(scores) {
@@ -334,6 +344,11 @@
       // Clear previous Firebase listener
       if (db.ref('games/' + roomId)) db.ref('games/' + roomId).off(); 
       
+      // Reset local scores when starting a new non-online game type
+      scoreX.textContent = '0';
+      scoreO.textContent = '0';
+      scoreDraws.textContent = '0';
+      
       resetGame();
       if (mode === 'ai') aiDifficulty = difficulty;
       gameStatusP.textContent = 'Game started locally or vs AI.';
@@ -347,25 +362,22 @@
         localScoreboardDiv.style.display = 'none';
         gameStatusP.textContent = 'Enter a room ID or generate one.';
     }
+    
+    // --- Online Multiplayer Functions (No changes needed) ---
 
-    // --- Online Multiplayer Functions (Modified for Scoreboard) ---
-
-    function generateRoomId() {
-        return Math.random().toString(36).substring(2, 8).toUpperCase();
-    }
+    function generateRoomId() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
 
     function createGame() {
         roomId = roomIdInput.value.trim() || generateRoomId();
         localPlayer = 'X';
         
-        // Initialize game state with score
         db.ref('games/' + roomId).set({
             board: Array(9).fill(''),
             currentPlayer: 'X',
             gameActive: true,
             playerX: true, 
             playerO: false, 
-            scores: { scoreX: 0, scoreO: 0, draws: 0 } // Initialize scores
+            scores: { scoreX: 0, scoreO: 0, draws: 0 }
         }).then(() => {
             gameStatusP.textContent = `Game created! Your ID is: ${roomId}. Waiting for Player O...`;
             roomIdInput.value = roomId;
@@ -403,26 +415,22 @@
 
             const gameState = snapshot.val();
             
-            // Update local state from Firebase
             board = gameState.board;
             currentPlayer = gameState.currentPlayer;
             gameActive = gameState.gameActive;
             
-            // Update Online Scoreboard
             if (gameState.scores) {
                updateOnlineScoreboard(gameState.scores);
             }
 
             drawBoard();
 
-            // Handle win/draw condition received from opponent
             if (!gameActive) {
-                const result = checkWinner();
+                const result = checkWinner(board);
                 
-                if (localPlayer === 'X') { // Only Player X handles the scoring and reset confirmation
+                if (localPlayer === 'X') { 
                     setTimeout(() => {
                         if (confirm(`Game over. ${result.winner === 'Draw' ? 'It was a Draw.' : `${result.winner} wins!`}\n\nStart a new round?`)) {
-                           // Update scores in Firebase
                            let newScores = gameState.scores || { scoreX: 0, scoreO: 0, draws: 0 };
                            if (result.winner === 'X') newScores.scoreX++;
                            else if (result.winner === 'O') newScores.scoreO++;
@@ -432,7 +440,7 @@
                                board: Array(9).fill(''),
                                currentPlayer: 'X',
                                gameActive: true,
-                               scores: newScores // Push updated scores
+                               scores: newScores 
                            });
                        } else {
                            db.ref('games/' + roomId).off();
@@ -447,7 +455,7 @@
     function handleOnlineMove(index) {
         board[index] = localPlayer;
         
-        const result = checkWinner(); 
+        const result = checkWinner(board); 
         const nextPlayer = localPlayer === 'X' ? 'O' : 'X';
         
         db.ref('games/' + roomId).update({
@@ -457,18 +465,91 @@
         });
     }
     
-    // --- AI Logic (Still Random, ready for Minimax implementation) ---
+    // --- Minimax AI Logic ---
+    
+    // Score constants for Minimax
+    const scores = {
+      'O': 10,
+      'X': -10,
+      'Draw': 0
+    };
+
+    function minimax(newBoard, player) {
+      const result = checkWinner(newBoard);
+      if (result.winner !== undefined && result.winner !== null) {
+        return scores[result.winner];
+      }
+
+      let availableSpots = newBoard.map((v, i) => v === '' ? i : null).filter(v => v !== null);
+
+      if (player === 'O') { // AI (Maximizer)
+        let bestScore = -Infinity;
+        for (let i of availableSpots) {
+          newBoard[i] = player;
+          let score = minimax(newBoard, 'X');
+          newBoard[i] = ''; // Reset board
+          bestScore = Math.max(score, bestScore);
+        }
+        return bestScore;
+      } else { // Human (Minimizer)
+        let bestScore = Infinity;
+        for (let i of availableSpots) {
+          newBoard[i] = player;
+          let score = minimax(newBoard, 'O');
+          newBoard[i] = ''; // Reset board
+          bestScore = Math.min(score, bestScore);
+        }
+        return bestScore;
+      }
+    }
+
+    function getBestMove(currentBoard) {
+      let bestScore = -Infinity;
+      let move = -1;
+      let availableSpots = currentBoard.map((v, i) => v === '' ? i : null).filter(v => v !== null);
+
+      for (let i of availableSpots) {
+        currentBoard[i] = 'O'; // Test move
+        let score = minimax(currentBoard, 'X');
+        currentBoard[i] = ''; // Undo move
+
+        if (score > bestScore) {
+          bestScore = score;
+          move = i;
+        }
+      }
+      return move;
+    }
+
+    // --- AI Move Function (Implements Difficulty) ---
 
     function aiMove() {
       if (!gameActive || currentPlayer !== 'O') return;
       
       let empty = board.map((v, i) => v === '' ? i : null).filter(v => v !== null);
+      let move = -1;
       
-      if (empty.length > 0) {
-        let move = empty[Math.floor(Math.random() * empty.length)];
+      if (aiDifficulty === 'easy') {
+        // Purely random move
+        move = empty[Math.floor(Math.random() * empty.length)];
+      } 
+      else if (aiDifficulty === 'normal') {
+        // 75% optimal, 25% random
+        if (Math.random() < 0.75) {
+          move = getBestMove(board);
+        } else {
+          move = empty[Math.floor(Math.random() * empty.length)];
+        }
+      } 
+      else if (aiDifficulty === 'hard') {
+        // Always plays optimal Minimax move (unbeatable)
+        move = getBestMove(board);
+      }
+
+      if (move !== -1) {
         board[move] = 'O';
         drawBoard();
-        checkWinner();
+        checkWinner(board); // Check and update global state
         currentPlayer = 'X';
       }
     }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" style="height: 100%; overflow: hidden;">
+<html lang="en" style="height: 100vh; overflow: hidden;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,40 +9,52 @@
     <style>
         /* --- CRITICAL LAYOUT STYLES --- */
         html, body {
-            height: 100%; /* Must be 100% of viewport */
+            /* **CRITICAL:** Use viewport height and hide overflow */
+            height: 100vh; 
             margin: 0; 
             padding: 0; 
-            overflow: hidden; /* **CRITICAL: No scrollbars on the main page** */
+            overflow: hidden; 
             font-family: 'Segoe UI', sans-serif; 
             background: linear-gradient(135deg, #7f5af0, #2cb67d); 
             color: white; 
             text-align: center; 
+            /* Use flexbox to perfectly center and manage the view */
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: flex-start;
         } 
         
-        /* Main Screen Container - ensures full coverage and hides non-active screens */
+        /* Main Screen Container */
         .screen {
             width: 100%;
-            height: 100%;
+            height: 100vh; /* Absolute viewport height */
             max-width: 600px;
             position: absolute;
             top: 0;
             left: 50%;
             transform: translateX(-50%);
-            display: none; /* All screens are hidden by default */
+            display: none; 
             padding: 20px;
             box-sizing: border-box;
-            /* Allow internal content to scroll, but only if necessary */
-            overflow-y: auto; 
-            padding-top: 60px; /* Space for fixed controls */
+            /* Flex layout for screens to manage internal content and footer */
+            display: none;
+            flex-direction: column;
         }
         
         .screen.active {
-            display: block;
+            display: flex; /* Display as flex when active */
+        }
+        
+        /* Inner content wrapper to handle internal scrolling without scrolling the main screen */
+        .screen-content {
+            flex-grow: 1; /* Takes up all available space */
+            overflow-y: auto; /* Allows content inside this area to scroll */
+            padding-top: 40px; /* Space under fixed buttons */
+            padding-bottom: 20px; /* Space above footer */
         }
 
+        /* --- TYPOGRAPHY & SPACING --- */
         h1 { margin: 10px 0 20px 0; } 
         h2 { margin-top: 5px; margin-bottom: 20px;}
         
@@ -112,14 +124,13 @@
             cursor: pointer; 
             touch-action: manipulation;
         } 
-        .cell.winner { 
-            background: #2cb67d; 
-        } 
+        .cell.winner { background: #2cb67d; } 
         
         /* --- SCOREBOARD & STATUS STYLES (Game Screen Only) --- */
         #scoreboard { 
             margin-top: 10px;
             margin-bottom: 20px;
+            flex-shrink: 0; /* Prevents shrinking when scrolling internal content */
         } 
         .scoreboard-panel { 
             display: inline-block; 
@@ -129,9 +140,7 @@
             background: rgba(0, 0, 0, 0.2); 
             text-align: left; 
         } 
-        .scoreboard-panel p { 
-            margin: 5px 0; 
-        } 
+        .scoreboard-panel p { margin: 5px 0; } 
         
         /* Timer styles */
         #timer {
@@ -141,30 +150,33 @@
             margin-bottom: 10px;
         }
 
-        /* --- CHAT SCREEN STYLES (Height fixed to prevent screen scroll) --- */
+        /* --- CHAT SCREEN STYLES (Fixed heights) --- */
         #chat-screen {
             text-align: left;
-            display: flex;
-            flex-direction: column;
+            padding: 20px;
+            padding-top: 60px; /* Adjust for fixed controls */
+            padding-bottom: 50px; /* Adjust for footer/input */
         }
         #chat-messages {
-            /* Dynamic height calculation to fit exactly between header and input area */
-            height: calc(100vh - 180px); 
+            height: 100%; 
             overflow-y: auto;
             margin-bottom: 10px;
             padding: 10px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 4px;
-            flex-grow: 1; 
+            flex-grow: 1; /* Takes space between header and input */
         }
         #chat-input-area {
             display: flex;
-            /* Anchored to the bottom of the chat screen */
-            position: sticky; 
-            bottom: -20px; 
-            width: 100%;
-            padding: 10px 0;
+            position: absolute;
+            bottom: 35px; /* Above the footer */
+            left: 20px;
+            right: 20px;
             background: rgba(15, 15, 15, 0.5); 
+            padding: 10px 0;
+            z-index: 900;
+            max-width: 560px; /* Matches the max-width of the screen */
+            transform: translateX(0%); /* Reset transform */
         }
         #chat-input-area input {
             flex-grow: 1;
@@ -179,17 +191,24 @@
             border: none;
             border-radius: 0 4px 4px 0;
             cursor: pointer;
+            margin: 0;
         }
         .chat-message-x { color: #7f5af0; } 
         .chat-message-o { color: #2cb67d; } 
 
-        /* Footer */
+        /* Footer (Fixed to the very bottom) */
         footer { 
-            position: absolute;
-            bottom: 10px;
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
             width: 100%;
-            font-size: 1rem; 
+            max-width: 600px;
+            padding: 5px 0;
+            font-size: 0.8rem; 
             color: #94a1b2; 
+            background: rgba(15, 15, 15, 0.8);
+            z-index: 1001; /* Above everything else */
         } 
         footer b { color: #fffffe; } 
     </style>
@@ -201,90 +220,97 @@
     <button id="chatOpenBtn" onclick="showScreen('chat-screen')" class="fixed-control">💬 Chat</button>
 
     <div id="home-screen" class="screen active">
-        <h1>Tic Tac Toe Game</h1>
-        
-        <div id="main-controls" style="display: flex; flex-direction: column; align-items: center; margin-top: 50px;">
-            <button onclick="showScreen('local-config')">Play Local / AI</button>
-            <button onclick="showScreen('online-lobby')">Online Multiplayer</button>
+        <div class="screen-content">
+            <h1>Tic Tac Toe Game</h1>
+            <div id="main-controls" style="display: flex; flex-direction: column; align-items: center; margin-top: 50px;">
+                <button onclick="showScreen('local-config')">Play Local / AI</button>
+                <button onclick="showScreen('online-lobby')">Online Multiplayer</button>
+            </div>
         </div>
     </div>
 
     <div id="local-config" class="screen">
-        <h1>Local / AI Setup</h1>
-        
-        <div id="boardSizeControls">
-            <h3>Select Board Size (N-in-a-Row)</h3>
-            <button id="size3x3Btn" onclick="setBoardSize(3, this)">3x3 (3-in-a-Row)</button>
-            <button onclick="setBoardSize(4, this)">4x4 (4-in-a-Row)</button>
-            <button onclick="setBoardSize(5, this)">5x5 (5-in-a-Row)</button>
-        </div>
+        <div class="screen-content">
+            <h1>Local / AI Setup</h1>
+            
+            <div id="boardSizeControls">
+                <h3>Select Board Size (N-in-a-Row)</h3>
+                <button id="size3x3Btn" onclick="setBoardSize(3, this)">3x3 (3-in-a-Row)</button>
+                <button onclick="setBoardSize(4, this)">4x4 (4-in-a-Row)</button>
+                <button onclick="setBoardSize(5, this)">5x5 (5-in-a-Row)</button>
+            </div>
 
-        <div id="modeControls">
-            <h3>Select Player Mode</h3>
-            <button id="localPlayBtn" onclick="startGame('local', null, this)">Play Friend (Same Device)</button>
-        </div>
+            <div id="modeControls">
+                <h3>Select Player Mode</h3>
+                <button id="localPlayBtn" onclick="startGame('local', null, this)">Play Friend (Same Device)</button>
+            </div>
 
-        <div id="aiControls" style="margin-top: 15px;">
-            <h3>Play AI (3x3 Only)</h3>
-            <button onclick="startGame('ai', 'easy', this)">Easy AI</button>
-            <button onclick="startGame('ai', 'normal', this)">Normal AI</button>
-            <button onclick="startGame('ai', 'hard', this)">Hard AI</button>
+            <div id="aiControls" style="margin-top: 15px;">
+                <h3>Play AI (3x3 Only)</h3>
+                <button onclick="startGame('ai', 'easy', this)">Easy AI</button>
+                <button onclick="startGame('ai', 'normal', this)">Normal AI</button>
+                <button onclick="startGame('ai', 'hard', this)">Hard AI</button>
+            </div>
+            
+            <button style="margin-top: 30px;" onclick="showScreen('game-screen', true)">Start Game</button>
         </div>
-        
-        <button style="margin-top: 30px;" onclick="showScreen('game-screen', true)">Start Game</button>
     </div>
 
     <div id="online-lobby" class="screen">
-        <h1>Online Multiplayer</h1>
-        
-        <div id="online-lobby-controls">
-            <h3>Current Board Size: <span id="lobbyBoardSize">3x3</span></h3>
-            <div id="onlineBoardSizeControls">
-                <button id="onlineSize3x3Btn" onclick="setBoardSize(3, this, false, 'online-lobby')">3x3</button>
-                <button onclick="setBoardSize(4, this, false, 'online-lobby')">4x4</button>
-                <button onclick="setBoardSize(5, this, false, 'online-lobby')">5x5</button>
-            </div>
+        <div class="screen-content">
+            <h1>Online Multiplayer</h1>
             
-            <input type="text" id="roomIdInput" placeholder="Enter Room ID" style="margin: 20px 0;">
-            <p id="onlineStatus">Enter an ID or create a game.</p>
-            <button onclick="createGame()">Create Game (I am X)</button>
-            <button onclick="joinGame()">Join Game (I am O)</button>
-            <button onclick="showScreen('game-screen', true)" id="startGameOnlineBtn" style="display: none; margin-top: 20px; background: #2cb67d; color: white;">Go to Game Screen</button>
+            <div id="online-lobby-controls">
+                <h3>Current Board Size: <span id="lobbyBoardSize">3x3</span></h3>
+                <div id="onlineBoardSizeControls">
+                    <button id="onlineSize3x3Btn" onclick="setBoardSize(3, this, false, 'online-lobby')">3x3</button>
+                    <button onclick="setBoardSize(4, this, false, 'online-lobby')">4x4</button>
+                    <button onclick="setBoardSize(5, this, false, 'online-lobby')">5x5</button>
+                </div>
+                
+                <input type="text" id="roomIdInput" placeholder="Enter Room ID" style="margin: 20px 0;">
+                <p id="onlineStatus">Enter an ID or create a game.</p>
+                <button onclick="createGame()">Create Game (I am X)</button>
+                <button onclick="joinGame()">Join Game (I am O)</button>
+                <button onclick="showScreen('game-screen', true)" id="startGameOnlineBtn" style="display: none; margin-top: 20px; background: #2cb67d; color: white;">Go to Game Screen</button>
+            </div>
         </div>
     </div>
 
     <div id="game-screen" class="screen">
-        <h2 id="gameTitle">Local Game</h2>
-        
-        <div id="game-info">
-            <p id="gameStatus">Game in progress...</p>
-            <p id="timer" style="display: none;">Turn Time: <span id="timerValue">0s</span></p>
+        <div class="screen-content"> 
+            <h2 id="gameTitle">Local Game</h2>
             
-            <div id="game-board-container">
-                <div id="game">
-                    </div>
-            </div>
-        </div>
-        
-        <div id="scoreboard">
-            <div id="local-scoreboard" class="scoreboard-panel">
-                <h2>Local Score</h2>
-                <p>Player X: <span id="scoreX">0</span></p>
-                <p>Player O: <span id="scoreO">0</span></p>
-                <p>Draws: <span id="scoreDraws">0</span></p>
+            <div id="game-info">
+                <p id="gameStatus">Game in progress...</p>
+                <p id="timer" style="display: none;">Turn Time: <span id="timerValue">0s</span></p>
+                
+                <div id="game-board-container">
+                    <div id="game">
+                        </div>
+                </div>
             </div>
             
-            <div id="online-scoreboard" class="scoreboard-panel" style="display: none;">
-                <h2>Online Score (<span id="localPlayerDisplay">?</span>)</h2>
-                <p>You: <span id="onlineScoreLocal">0</span></p>
-                <p>Opponent: <span id="onlineScoreOpponent">0</span></p>
-                <p>Draws: <span id="onlineScoreDraws">0</span></p>
+            <div id="scoreboard">
+                <div id="local-scoreboard" class="scoreboard-panel">
+                    <h2>Local Score</h2>
+                    <p>Player X: <span id="scoreX">0</span></p>
+                    <p>Player O: <span id="scoreO">0</span></p>
+                    <p>Draws: <span id="scoreDraws">0</span></p>
+                </div>
+                
+                <div id="online-scoreboard" class="scoreboard-panel" style="display: none;">
+                    <h2>Online Score (<span id="localPlayerDisplay">?</span>)</h2>
+                    <p>You: <span id="onlineScoreLocal">0</span></p>
+                    <p>Opponent: <span id="onlineScoreOpponent">0</span></p>
+                    <p>Draws: <span id="onlineScoreDraws">0</span></p>
+                </div>
             </div>
         </div>
     </div>
 
     <div id="chat-screen" class="screen">
-        <h2>Game Chat</h2>
+        <h2 style="padding-top: 40px; margin-bottom: 0;">Game Chat</h2>
         <div id="chat-messages">
             </div>
         <div id="chat-input-area">

@@ -43,9 +43,6 @@
         } 
         h1 { font-size: 2.5rem; }
         
-        /* * Screens are hidden by default via `display: none;` and shown 
-         * via `display: flex;` when the `active` class is applied.
-         */
         .screen {
             width: 100%;
             height: 100%;
@@ -61,7 +58,7 @@
             background: var(--color-dark-bg); 
             flex-direction: column;
             animation: fadeIn 0.3s ease-in-out;
-            z-index: 100; 
+            z-index: 100; /* Standard screen layer */
         }
         
         .screen.active { 
@@ -82,11 +79,7 @@
 
         /* --- SPLASH SCREEN SPECIFIC --- */
         #splash-screen {
-            /* * CRITICAL FIX: The splash screen must be active initially 
-             * but is manually controlled by JS after the button click. 
-             * It needs the highest z-index until it's hidden.
-             */
-            z-index: 200; 
+            z-index: 200; /* Highest z-index to ensure initial visibility */
             display: flex; /* Overriding 'display: none' for initial view */
             justify-content: center;
             align-items: center;
@@ -312,6 +305,11 @@
             z-index: 1001; 
         } 
         footer b { color: #94a1b2; } 
+        
+        /* Specific Z-Index for Home Screen to ensure it sits above the standard screen index (100) */
+        #home-screen {
+            z-index: 101; 
+        }
     </style>
 </head>
 <body>
@@ -461,16 +459,19 @@
 
             // 2. Start the loading sequence
             setTimeout(() => {
-                // 3. Navigate to the home screen after the delay
+                // 3. Navigate to the home screen
                 showScreen('home-screen');
                 
-                // *** THE FINAL FIX: Explicitly set display: none to force the splash screen off the stack ***
+                // 4. Force the splash screen off the stack
                 if (splashScreen) {
-                    splashScreen.classList.remove('active');
-                    splashScreen.style.display = 'none'; 
+                    // Use a slight delay to allow home-screen to fully render/transition in
+                    setTimeout(() => {
+                        splashScreen.classList.remove('active');
+                        splashScreen.style.display = 'none'; 
+                    }, 100); 
                 }
                 
-                // 4. Reset splash screen button state (optional, as the screen is now hidden)
+                // 5. Reset splash screen button state (optional, as the screen is now hidden)
                 if (loadingSpinner) loadingSpinner.style.display = 'none';
                 if (playButton) playButton.style.display = 'block'; 
             }, LOADING_TIME_MS);
@@ -550,11 +551,9 @@
         // --- SCREEN MANAGEMENT ---
         
         function showScreen(screenId, isGameStart = false) {
-            // Hide all full-page screens EXCEPT the splash screen, which is handled separately
+            // Hide all full-page screens by removing the 'active' class
             document.querySelectorAll('.screen').forEach(screen => {
-                 if (screen.id !== screenId && screen.id !== 'splash-screen') { 
-                     screen.classList.remove('active');
-                 }
+                 screen.classList.remove('active');
             });
 
             // Show the requested screen

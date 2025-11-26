@@ -505,7 +505,7 @@
                 
                 if (result.winner) {
                     // Game Over - DrawBoard must be called one last time to show the winner highlight
-                    gameActive = false;
+                    // Note: checkWinner(..., true) already set gameActive=false
                     updateLocalScore(result.winner);
                     drawBoard(); // REDRAW with winning highlight
                     setTimeout(resetGame, 2000);
@@ -559,9 +559,9 @@
                         for (let [dr, dc] of directions) {
                             const result = checkLine(r, c, dr, dc);
                             if (result) {
-                                // Only update global state if explicitly requested (i.e., not during Minimax)
+                                // FIX: If a win is found, update state if requested, and return immediately.
                                 if (updateGlobalState) {
-                                    gameActive = false;
+                                    gameActive = false; 
                                 }
                                 return result;
                             }
@@ -571,6 +571,7 @@
             }
 
             if (!currentBoard.includes('')) {
+                // It's a Draw
                 if (updateGlobalState) {
                     gameActive = false;
                     if (mode !== 'online') { 

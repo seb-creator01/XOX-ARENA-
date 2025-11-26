@@ -414,23 +414,33 @@
             return size; // N-in-a-Row
         }
         
-        function setBoardSize(size, button) {
+        /**
+         * Sets the board size and handles responsiveness.
+         * @param {number} size - The new board size (N x N).
+         * @param {HTMLElement|null} button - The button element that was clicked (null if called from resize).
+         * @param {boolean} skipReset - If true, skips the game reset and mode switching logic (used for debounced resize events).
+         */
+        function setBoardSize(size, button, skipReset = false) {
             boardSize = size;
             const newBoardLength = size * size;
-            board = Array(newBoardLength).fill('');
+            
+            // NOTE: We only reset the board array if a button was clicked AND the size actually changed
+            if (!skipReset && board.length !== newBoardLength) {
+                board = Array(newBoardLength).fill('');
+            }
             
             gameDiv.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
             
             let cellSize, fontSize;
             // Calculate cell size based on screen width for responsiveness
             const containerWidth = Math.min(window.innerWidth * 0.95, 500); // 95vw up to 500px
-            // Adjust calculation slightly for mobile usability
             cellSize = (containerWidth / size) - (size === 3 ? 5 : 4); 
             fontSize = cellSize / 2.5; 
             
             gameDiv.style.setProperty('--cell-size', `${cellSize}px`);
             gameDiv.style.setProperty('--font-size', `${fontSize}px`);
             
+            // --- UI/Button Activation Logic ---
             document.querySelectorAll('#boardSizeControls button').forEach(btn => { 
                 btn.classList.remove('active'); 
             }); 
@@ -438,26 +448,33 @@
                 button.classList.add('active'); 
             }
             
-            // **FIXED LOGIC:** Show AI controls only if size is 3 AND mode is not online
             if (size === 3 && mode !== 'online') { 
                 aiControlsDiv.style.display = 'block'; 
             } else {
                 aiControlsDiv.style.display = 'none'; 
             }
+            
+            // --- Game Reset/Online Logic (SKIPPED if skipReset is TRUE) ---
+            if (skipReset) {
+                // If it's a resize event, just redraw the board with current content 
+                // to apply new sizing, but don't change game state.
+                drawBoard(); 
+                return;
+            }
 
+            // The rest of the logic only runs if it's NOT a resize event
             if (mode === 'ai' && size !== 3) {
-                // Force switch back to local if AI mode is active and size changes
                 const localBtn = document.querySelector('#controls button:nth-child(1)'); 
                 startGame('local', null, localBtn);
                 gameStatusP.textContent = `AI is only available for 3x3. Switched to Local mode for ${size}x${size}.`;
                 return;
             } else if (mode !== 'online') {
+                // LOCAL/AI Mode - Only reset if NOT a resize
                 resetGame();
                 gameStatusP.textContent = `Ready to play ${size}x${size} in ${mode} mode.`;
             } else {
-                // *** ONLINE FIX: If the board size is changed while connected, 
-                // update Firebase to force a new game on the new size
-                if (roomId && localPlayer && button) { // Only update Firebase if a button was actually clicked (not from resize event)
+                // Online mode reset logic only runs if a button was clicked (button is not null)
+                if (roomId && localPlayer && button) { 
                     gameStatusP.textContent = `New board size ${size}x${size} selected. Starting new round...`;
                     db.ref('games/' + roomId).update({
                         boardSize: size,
@@ -834,8 +851,8 @@
                 
                 // IMPORTANT: Sync board size if it changes in Firebase 
                 if (gameState.boardSize && gameState.boardSize !== boardSize) {
-                    // Call setBoardSize with null to only update state/visuals, not trigger Firebase update
-                    setBoardSize(gameState.boardSize, null); 
+                    // Call setBoardSize with null and true to only update state/visuals, not trigger Firebase update/reset
+                    setBoardSize(gameState.boardSize, null, true); 
                 }
 
                 const prevGameActive = gameActive;
@@ -1037,9 +1054,9 @@
                 clearTimeout(resizeTimer); 
 
                 resizeTimer = setTimeout(() => {
-                    // Call setBoardSize with null button to avoid triggering Firebase updates,
-                    // but allow the CSS/sizing recalculation for responsiveness.
-                    setBoardSize(boardSize, null);
+                    // Call setBoardSize with null button and TRUE for the skipReset parameter.
+                    // This ensures only the CSS/sizing is recalculated, preserving the current game state.
+                    setBoardSize(boardSize, null, true);
                 }, 250); // Debounce time: 250ms
             });
             // -----------------------------------------------------------------------------

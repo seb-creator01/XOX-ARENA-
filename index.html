@@ -4,31 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tic Tac Toe Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        /* --- CRITICAL LAYOUT STYLES --- */
+        /* --- CRITICAL LAYOUT & FONT --- */
         html, body {
-            /* **CRITICAL:** Use viewport height and hide overflow */
-            height: 100vh; 
+            /* Use custom property for reliable mobile height */
+            height: 100%;
+            height: calc(var(--vh, 1vh) * 100); 
             margin: 0; 
             padding: 0; 
             overflow: hidden; 
-            font-family: 'Segoe UI', sans-serif; 
-            background: linear-gradient(135deg, #7f5af0, #2cb67d); 
-            color: white; 
+            font-family: 'Roboto', 'Segoe UI', sans-serif; 
+            background: #0f0f0f; /* Deep Black Background */
+            color: #eeeeee; /* Light Text */
             text-align: center; 
-            /* Use flexbox to perfectly center and manage the view */
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
+            user-select: none; /* Prevents text selection for app feel */
+        } 
+
+        /* --- UI AESTHETICS --- */
+        
+        h1, h2, h3 { 
+            font-weight: 700;
+            color: #7f5af0; /* Purple accent */
+            text-shadow: 0 0 5px rgba(127, 90, 240, 0.5);
+            margin-top: 10px;
         } 
         
-        /* Main Screen Container */
         .screen {
             width: 100%;
-            height: 100vh; /* Absolute viewport height */
+            height: 100%;
+            height: calc(var(--vh, 1vh) * 100); /* Use custom property */
             max-width: 600px;
             position: absolute;
             top: 0;
@@ -37,46 +47,47 @@
             display: none; 
             padding: 20px;
             box-sizing: border-box;
-            /* Flex layout for screens to manage internal content and footer */
-            display: none;
+            background: #0f0f0f; 
             flex-direction: column;
+            animation: fadeIn 0.3s ease-in-out;
         }
         
-        .screen.active {
-            display: flex; /* Display as flex when active */
-        }
-        
-        /* Inner content wrapper to handle internal scrolling without scrolling the main screen */
-        .screen-content {
-            flex-grow: 1; /* Takes up all available space */
-            overflow-y: auto; /* Allows content inside this area to scroll */
-            padding-top: 40px; /* Space under fixed buttons */
-            padding-bottom: 20px; /* Space above footer */
+        .screen.active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
-        /* --- TYPOGRAPHY & SPACING --- */
-        h1 { margin: 10px 0 20px 0; } 
-        h2 { margin-top: 5px; margin-bottom: 20px;}
-        
-        /* --- BUTTON STYLES --- */
+        .screen-content {
+            flex-grow: 1; 
+            overflow-y: auto; 
+            padding-top: 40px; 
+            padding-bottom: 50px; /* Space above fixed footer */
+        }
+
+        /* --- BUTTONS & INPUTS --- */
         button { 
-            padding: 12px 25px; 
-            margin: 10px; 
+            padding: 14px 30px; 
+            margin: 8px; 
             border: none; 
-            background: #fffffe; 
-            color: #0f0f0f; 
-            font-weight: bold; 
-            border-radius: 8px; 
+            background: #242629; /* Darker Grey Base */
+            color: #eeeeee; 
+            font-weight: 700; 
+            border-radius: 10px; /* Rounded corners */
             cursor: pointer; 
-            transition: background 0.3s, transform 0.1s; 
-            touch-action: manipulation;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
             font-size: 1rem;
         } 
+        button:hover {
+            background: #393e46;
+        }
         button.active { 
-            background: #7f5af0; 
-            color: #fffffe; 
-            border: 2px solid #2cb67d; 
-            transform: scale(1.02); 
+            background: #2cb67d; /* Neon Green Accent */
+            color: #0f0f0f; 
+            box-shadow: 0 0 10px rgba(44, 182, 125, 0.8), 0 4px 8px rgba(0, 0, 0, 0.5); /* Neon Glow */
+            transform: translateY(-2px); 
         } 
         
         #home-screen button {
@@ -84,6 +95,17 @@
             max-width: 300px;
             font-size: 1.2rem;
             margin: 15px;
+        }
+
+        input[type="text"] {
+            padding: 12px;
+            border: none;
+            border-radius: 25px; /* Pill Shape */
+            background: #242629;
+            color: #eeeeee;
+            font-size: 1rem;
+            text-align: center;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
         }
         
         /* Fixed top controls */
@@ -94,109 +116,136 @@
             font-size: 1rem;
             padding: 8px 15px;
             margin: 5px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+            background: #16161a;
+            color: #7f5af0;
         }
         #muteBtn { right: 10px; }
         #backBtn { left: 10px; display: none; }
         #chatOpenBtn { left: 100px; display: none; }
 
-        /* --- BOARD STYLES --- */
+        /* --- GAME BOARD --- */
         #game-board-container { 
             display: flex; 
             justify-content: center; 
-            margin: 10px auto; 
+            margin: 20px auto; 
         } 
         #game { 
             display: grid; 
-            grid-gap: 5px; 
+            grid-gap: 8px; /* Slightly larger gap for cleaner look */
             width: 95vw; 
             max-width: 500px; 
+            padding: 10px;
+            background: #16161a; /* Darker border/container */
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.3);
         } 
         .cell { 
             width: var(--cell-size); 
             height: var(--cell-size); 
-            background: #16161a; 
+            background: #242629; /* Cell background */
             display: flex; 
             align-items: center; 
             justify-content: center; 
             font-size: var(--font-size); 
-            color: #fffffe; 
-            border-radius: 5px; 
+            font-weight: 700;
+            color: #eeeeee; 
+            border-radius: 8px; 
             cursor: pointer; 
             touch-action: manipulation;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            transition: background 0.1s, transform 0.1s;
         } 
-        .cell.winner { background: #2cb67d; } 
+        .cell:hover {
+            background: #393e46;
+        }
+        .cell:active {
+            transform: scale(0.95);
+        }
+        .cell.winner { 
+            background: #2cb67d; /* Neon Green Win */
+            box-shadow: 0 0 15px rgba(44, 182, 125, 0.8);
+            color: #0f0f0f;
+        } 
         
-        /* --- SCOREBOARD & STATUS STYLES (Game Screen Only) --- */
-        #scoreboard { 
-            margin-top: 10px;
-            margin-bottom: 20px;
-            flex-shrink: 0; /* Prevents shrinking when scrolling internal content */
-        } 
+        /* --- SCOREBOARD & STATUS --- */
+        #gameStatus {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #94a1b2;
+            margin: 15px 0;
+        }
+        #gameStatus strong {
+            color: #7f5af0;
+        }
+        #scoreboard { margin-top: 10px; margin-bottom: 20px; flex-shrink: 0; } 
         .scoreboard-panel { 
             display: inline-block; 
             padding: 10px 20px; 
-            margin: 10px 5px; 
-            border-radius: 8px; 
-            background: rgba(0, 0, 0, 0.2); 
+            margin: 8px; 
+            border-radius: 10px; 
+            background: #16161a; /* Dark panel background */
             text-align: left; 
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
         } 
-        .scoreboard-panel p { margin: 5px 0; } 
+        .scoreboard-panel h2 { color: #2cb67d; margin-bottom: 5px; }
+        .scoreboard-panel p { margin: 5px 0; font-size: 0.9rem; } 
         
         /* Timer styles */
         #timer {
             font-size: 1.5rem;
             font-weight: bold;
-            color: #f05a7f; 
+            color: #ff8e3c; /* Orange/Warning Color */
             margin-bottom: 10px;
         }
 
-        /* --- CHAT SCREEN STYLES (Fixed heights) --- */
-        #chat-screen {
-            text-align: left;
-            padding: 20px;
-            padding-top: 60px; /* Adjust for fixed controls */
-            padding-bottom: 50px; /* Adjust for footer/input */
-        }
+        /* --- CHAT SCREEN STYLES --- */
+        #chat-screen { padding-bottom: 50px; }
         #chat-messages {
-            height: 100%; 
             overflow-y: auto;
             margin-bottom: 10px;
             padding: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            flex-grow: 1; /* Takes space between header and input */
+            background: #16161a;
+            border-radius: 8px;
+            flex-grow: 1; 
+        }
+        #chat-messages p {
+            margin: 5px 0;
         }
         #chat-input-area {
             display: flex;
-            position: absolute;
+            position: fixed;
             bottom: 35px; /* Above the footer */
-            left: 20px;
-            right: 20px;
-            background: rgba(15, 15, 15, 0.5); 
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 560px; 
+            background: #0f0f0f; 
             padding: 10px 0;
             z-index: 900;
-            max-width: 560px; /* Matches the max-width of the screen */
-            transform: translateX(0%); /* Reset transform */
         }
         #chat-input-area input {
             flex-grow: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 4px 0 0 4px;
+            border-radius: 25px 0 0 25px;
+            padding: 12px 18px;
+            text-align: left;
         }
         #chat-input-area button {
             padding: 10px 15px;
-            background: #2cb67d;
+            background: #7f5af0;
             color: white;
             border: none;
-            border-radius: 0 4px 4px 0;
+            border-radius: 0 25px 25px 0;
             cursor: pointer;
             margin: 0;
+            box-shadow: none;
+            flex-shrink: 0;
         }
         .chat-message-x { color: #7f5af0; } 
         .chat-message-o { color: #2cb67d; } 
 
-        /* Footer (Fixed to the very bottom) */
+        /* Footer (Fixed) */
         footer { 
             position: fixed;
             bottom: 0;
@@ -205,12 +254,13 @@
             width: 100%;
             max-width: 600px;
             padding: 5px 0;
-            font-size: 0.8rem; 
-            color: #94a1b2; 
-            background: rgba(15, 15, 15, 0.8);
-            z-index: 1001; /* Above everything else */
+            font-size: 0.7rem; 
+            color: #4a4d53; 
+            background: #16161a;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+            z-index: 1001; 
         } 
-        footer b { color: #fffffe; } 
+        footer b { color: #94a1b2; } 
     </style>
 </head>
 <body>
@@ -221,20 +271,20 @@
 
     <div id="home-screen" class="screen active">
         <div class="screen-content">
-            <h1>Tic Tac Toe Game</h1>
+            <h1>TIC TAC TOE ONLINE</h1>
             <div id="main-controls" style="display: flex; flex-direction: column; align-items: center; margin-top: 50px;">
-                <button onclick="showScreen('local-config')">Play Local / AI</button>
-                <button onclick="showScreen('online-lobby')">Online Multiplayer</button>
+                <button onclick="showScreen('local-config')">PLAY LOCAL / AI</button>
+                <button onclick="showScreen('online-lobby')">ONLINE MULTIPLAYER</button>
             </div>
         </div>
     </div>
 
     <div id="local-config" class="screen">
         <div class="screen-content">
-            <h1>Local / AI Setup</h1>
+            <h1>LOCAL / AI SETUP</h1>
             
             <div id="boardSizeControls">
-                <h3>Select Board Size (N-in-a-Row)</h3>
+                <h3>Select Board Size</h3>
                 <button id="size3x3Btn" onclick="setBoardSize(3, this)">3x3 (3-in-a-Row)</button>
                 <button onclick="setBoardSize(4, this)">4x4 (4-in-a-Row)</button>
                 <button onclick="setBoardSize(5, this)">5x5 (5-in-a-Row)</button>
@@ -252,13 +302,13 @@
                 <button onclick="startGame('ai', 'hard', this)">Hard AI</button>
             </div>
             
-            <button style="margin-top: 30px;" onclick="showScreen('game-screen', true)">Start Game</button>
+            <button style="margin-top: 30px;" onclick="showScreen('game-screen', true)" class="active">START GAME</button>
         </div>
     </div>
 
     <div id="online-lobby" class="screen">
         <div class="screen-content">
-            <h1>Online Multiplayer</h1>
+            <h1>ONLINE LOBBY</h1>
             
             <div id="online-lobby-controls">
                 <h3>Current Board Size: <span id="lobbyBoardSize">3x3</span></h3>
@@ -270,9 +320,9 @@
                 
                 <input type="text" id="roomIdInput" placeholder="Enter Room ID" style="margin: 20px 0;">
                 <p id="onlineStatus">Enter an ID or create a game.</p>
-                <button onclick="createGame()">Create Game (I am X)</button>
-                <button onclick="joinGame()">Join Game (I am O)</button>
-                <button onclick="showScreen('game-screen', true)" id="startGameOnlineBtn" style="display: none; margin-top: 20px; background: #2cb67d; color: white;">Go to Game Screen</button>
+                <button onclick="createGame()">CREATE GAME (I am X)</button>
+                <button onclick="joinGame()">JOIN GAME (I am O)</button>
+                <button onclick="showScreen('game-screen', true)" id="startGameOnlineBtn" style="display: none; margin-top: 20px;" class="active">GO TO GAME SCREEN</button>
             </div>
         </div>
     </div>
@@ -293,14 +343,14 @@
             
             <div id="scoreboard">
                 <div id="local-scoreboard" class="scoreboard-panel">
-                    <h2>Local Score</h2>
+                    <h2>LOCAL SCORE</h2>
                     <p>Player X: <span id="scoreX">0</span></p>
                     <p>Player O: <span id="scoreO">0</span></p>
                     <p>Draws: <span id="scoreDraws">0</span></p>
                 </div>
                 
                 <div id="online-scoreboard" class="scoreboard-panel" style="display: none;">
-                    <h2>Online Score (<span id="localPlayerDisplay">?</span>)</h2>
+                    <h2>ONLINE SCORE (<span id="localPlayerDisplay">?</span>)</h2>
                     <p>You: <span id="onlineScoreLocal">0</span></p>
                     <p>Opponent: <span id="onlineScoreOpponent">0</span></p>
                     <p>Draws: <span id="onlineScoreDraws">0</span></p>
@@ -310,17 +360,17 @@
     </div>
 
     <div id="chat-screen" class="screen">
-        <h2 style="padding-top: 40px; margin-bottom: 0;">Game Chat</h2>
+        <h2 style="padding-top: 40px; margin-bottom: 5px;">GAME CHAT</h2>
         <div id="chat-messages">
             </div>
         <div id="chat-input-area">
             <input type="text" id="chatInput" placeholder="Type a message..." maxlength="100">
-            <button onclick="sendChatMessage()">Send</button>
+            <button onclick="sendChatMessage()">SEND</button>
         </div>
     </div>
     
     <footer>
-        <p>Developed by <b>Seb-Creations</b></p>
+        <p>Developed by <b>Seb-Creations</b> | Tic Tac Toe App</p>
     </footer>
 
     <audio id="bgMusic" loop src="your_audio_file.mp3" preload="auto"></audio> 
@@ -351,7 +401,7 @@
             }
         }
         
-        // --- GAME STATE VARIABLES ---
+        // --- GAME STATE VARIABLES (All Unchanged) ---
         let boardSize = 3; 
         let board = Array(boardSize * boardSize).fill(''); 
         let currentPlayer = 'X'; 
@@ -396,7 +446,7 @@
         const gameTitle = document.getElementById('gameTitle');
 
 
-        // --- SCREEN MANAGEMENT ---
+        // --- SCREEN MANAGEMENT (Unchanged Logic) ---
         
         function showScreen(screenId, isGameStart = false) {
             // Hide all screens
@@ -421,9 +471,9 @@
                     resetGame();
                     localScoreboardDiv.style.display = 'inline-block';
                     onlineScoreboardDiv.style.display = 'none';
-                    gameTitle.textContent = mode === 'local' ? 'Local Friend Game' : `AI Game (${aiDifficulty})`;
+                    gameTitle.textContent = mode === 'local' ? 'LOCAL FRIEND GAME' : `AI GAME (${aiDifficulty})`;
                 } else if (mode === 'online' && localPlayer) {
-                    gameTitle.textContent = `Online Game (${localPlayer})`;
+                    gameTitle.textContent = `ONLINE GAME (${localPlayer})`;
                     localScoreboardDiv.style.display = 'none';
                     onlineScoreboardDiv.style.display = 'inline-block';
                     if (db && roomId) syncGame(); 
@@ -484,7 +534,7 @@
 
         function startTimer(startTime) {
             stopTimer(); 
-            timerDisplay.style.color = '#f05a7f';
+            timerDisplay.style.color = '#ff8e3c';
             timerInterval = setInterval(() => {
                 const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
                 if (elapsedSec >= TIME_LIMIT_SECONDS) {
@@ -497,9 +547,9 @@
                     timerValueSpan.textContent = `${elapsedSec}s`;
                     timerValueSpan.classList.remove('timer-warning', 'timer-critical');
                     if (elapsedSec >= 25) {
-                        timerValueSpan.classList.add('timer-critical');
+                        timerDisplay.style.color = '#f05a7f'; /* Critical */
                     } else if (elapsedSec >= 15) {
-                        timerValueSpan.classList.add('timer-warning');
+                        timerDisplay.style.color = '#ff8e3c'; /* Warning */
                     }
                 } else {
                     timerDisplay.style.display = 'none';
@@ -512,7 +562,7 @@
             if (autoResetTimeout) { clearTimeout(autoResetTimeout); autoResetTimeout = null; }
             timerDisplay.style.display = 'none';
             timerValueSpan.textContent = '0s';
-            timerValueSpan.classList.remove('timer-warning', 'timer-critical');
+            timerDisplay.style.color = '#ff8e3c'; 
         }
 
         function resetLocalTimer() {
@@ -523,18 +573,11 @@
             }
         }
         
-        // --- Board Size & Win Condition Logic ---
+        // --- Board Size & Win Condition Logic (Unchanged) ---
         function getWinLength(size) {
             return size;
         }
         
-        /**
-         * Sets the board size and handles responsiveness.
-         * @param {number} size - The new board size (N x N).
-         * @param {HTMLElement|null} button - The button element that was clicked (null if called from resize).
-         * @param {boolean} skipReset - If true, skips the game reset and mode switching logic (used for debounced resize events).
-         * @param {string} location - Indicates which screen triggered the change ('local-config' or 'online-lobby').
-         */
         function setBoardSize(size, button, skipReset = false, location = 'local-config') {
             const previousSize = boardSize;
             boardSize = size;
@@ -575,7 +618,6 @@
                 if (onlineBtn) onlineBtn.classList.add('active');
             }
 
-
             // AI Controls visibility logic only relevant on local-config
             if (location === 'local-config') {
                 if (size === 3 && mode !== 'online') { 
@@ -610,7 +652,7 @@
             }
         }
         
-        // --- Game Logic Functions (Unchanged) ---
+        // --- Core Game Logic Functions (Unchanged) ---
         function drawBoard() { 
             gameDiv.innerHTML = ''; 
             const finalResult = !gameActive ? checkWinner(board, false) : {};
@@ -632,14 +674,14 @@
                 if (mode === 'online' && localPlayer) { 
                     if (!gameActive) { 
                         const result = checkWinner(board, false);
-                        gameStatusP.textContent = `Game Over! ${result.winner === 'Draw' ? 'It\'s a Draw!' : `${result.winner} wins!`}. Starting new round in 3 seconds...`; 
+                        gameStatusP.textContent = `GAME OVER! ${result.winner === 'Draw' ? 'IT\'S A DRAW!' : `<strong>${result.winner}</strong> WINS!`}. Starting new round in 3 seconds...`; 
                         stopTimer(); 
                     } else { 
-                        const turnMessage = (currentPlayer === localPlayer) ? 'Your turn!' : `${currentPlayer}'s turn.`;
-                        gameStatusP.textContent = `You are ${localPlayer}. It is ${turnMessage} on a ${boardSize}x${boardSize} board.`; 
+                        const turnMessage = (currentPlayer === localPlayer) ? 'YOUR TURN!' : `${currentPlayer}'S TURN.`;
+                        gameStatusP.textContent = `YOU ARE <strong>${localPlayer}</strong>. IT IS ${turnMessage}`; 
                     } 
                 } else if (gameActive) {
-                    gameStatusP.textContent = `${currentPlayer}'s turn.`;
+                    gameStatusP.textContent = `<strong>${currentPlayer}</strong>'S TURN.`;
                 }
             }
         } 
@@ -649,7 +691,7 @@
             
             if (mode === 'online') { 
                 if (currentPlayer !== localPlayer) { 
-                    gameStatusP.textContent = `It is not your turn (${currentPlayer}'s turn).`; 
+                    gameStatusP.textContent = `IT IS NOT YOUR TURN (${currentPlayer}'S TURN).`; 
                     return; 
                 } 
                 handleOnlineMove(index); 
@@ -1044,19 +1086,39 @@
             document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊'; 
         } 
 
+        // --- JAVASCRIPT FIX FOR MOBILE VH SCROLLING ---
+
+        function setAppHeight() {
+            // Get the actual inner height of the browser window in pixels
+            let vh = window.innerHeight * 0.01;
+            // Set the value of the custom property --vh to compensate for mobile browsers
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+            
+            // Also explicitly set the chat input area's max width for consistency
+            const screenWidth = Math.min(window.innerWidth, 600);
+            const padding = 40; // 20px left + 20px right padding
+            const chatInputArea = document.getElementById('chat-input-area');
+            if (chatInputArea) {
+                chatInputArea.style.width = `${screenWidth - padding}px`;
+            }
+        }
+
         // --- Initial Setup and Resize Fix ---
         document.addEventListener('DOMContentLoaded', () => {
+            setAppHeight(); // Set height immediately
             showScreen('home-screen');
             const size3x3Btn = document.getElementById('size3x3Btn');
             setBoardSize(3, size3x3Btn, false, 'local-config');
 
             let resizeTimer;
             window.addEventListener('resize', () => {
+                setAppHeight(); // Recalculate height on resize
                 clearTimeout(resizeTimer); 
                 resizeTimer = setTimeout(() => {
                     setBoardSize(boardSize, null, true, currentScreen);
                 }, 250); 
             });
+            window.addEventListener('orientationchange', setAppHeight); // Recalculate on orientation change
         });
         
     </script>

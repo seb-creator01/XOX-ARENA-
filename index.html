@@ -7,7 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        /* --- Existing CSS STYLES (Provided by user) --- */
+        /* --- Existing CSS STYLES --- */
         body { 
             background: linear-gradient(135deg, #7f5af0, #2cb67d); 
             font-family: 'Segoe UI', sans-serif; 
@@ -19,7 +19,7 @@
         h1 { 
             margin-top: 20px; 
         } 
-        #controls button, #boardSizeControls button { 
+        #controls button, #boardSizeControls button, #aiControls button { 
             /* Base button styles */ 
             padding: 10px 20px; 
             margin: 5px; 
@@ -30,10 +30,9 @@
             border-radius: 5px; 
             cursor: pointer; 
             transition: background 0.3s, color 0.3s; 
-            /* Added for better mobile tapping */
             touch-action: manipulation;
         } 
-        #controls button.active, #boardSizeControls button.active { 
+        #controls button.active, #boardSizeControls button.active, #aiControls button.active { 
             /* Style for the currently active mode/size button */ 
             background: #7f5af0; 
             color: #fffffe; 
@@ -46,24 +45,19 @@
         }
         
         #game-container { 
-            /* Container for the single game board */ 
             display: flex; 
             justify-content: center; 
             gap: 20px; 
             margin: 20px auto; 
-            /* Allow vertical stacking on small screens */
             flex-wrap: wrap; 
         } 
         #game { 
-            /* Main game board grid */ 
             display: grid; 
-            /* grid-template-columns will be set in JS for dynamic sizes */
-            grid-gap: 5px; /* Reduced gap for larger boards */
-            max-width: 100vw; /* Limit size for mobile */
+            grid-gap: 5px; 
+            max-width: 100vw; 
             margin: auto;
         } 
         .cell { 
-            /* Dimensions are dynamic for larger boards */
             width: var(--cell-size); 
             height: var(--cell-size); 
             background: #16161a; 
@@ -72,9 +66,8 @@
             justify-content: center; 
             font-size: var(--font-size); 
             color: #fffffe; 
-            border-radius: 5px; /* Reduced radius for larger boards */
+            border-radius: 5px; 
             cursor: pointer; 
-            /* Added to prevent zoom on tap on mobile */
             touch-action: manipulation;
         } 
         .cell.winner { 
@@ -86,7 +79,7 @@
         #online-scoreboard, #local-scoreboard { 
             display: inline-block; 
             padding: 10px 20px; 
-            margin: 10px; /* Adjusted margin */
+            margin: 10px; 
             border-radius: 8px; 
             background: rgba(0, 0, 0, 0.2); 
             text-align: left; 
@@ -113,7 +106,7 @@
             padding: 10px; 
             background: rgba(0, 0, 0, 0.2); 
             border-radius: 8px; 
-            display: none; /* Hide by default */
+            display: none; 
         } 
         /* --- NEW/UPDATED CSS for Chat and Timer --- */
         #game-info {
@@ -121,19 +114,18 @@
             justify-content: center;
             align-items: flex-start;
             margin-top: 20px;
-            /* Flex direction column on smaller screens to stack board and chat */
             flex-direction: column; 
             align-items: center; 
         }
         #chat-container {
-            width: 90%; /* Use 90% of screen width on mobile */
-            max-width: 300px; /* Max width for desktop */
-            margin-top: 20px; /* Added margin for stacking */
+            width: 90%; 
+            max-width: 300px; 
+            margin-top: 20px; 
             padding: 10px;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
             text-align: left;
-            display: none; /* Only show in online mode */
+            display: none; 
         }
         /* Override flex-direction for desktop layout */
         @media (min-width: 768px) {
@@ -175,12 +167,18 @@
         #timer {
             font-size: 1.5rem;
             font-weight: bold;
-            color: #f05a7f; /* Reddish color for urgency */
+            color: #f05a7f; 
             margin-bottom: 10px;
-            display: none; /* Hidden by default */
+            display: none; 
         }
-        .chat-message-x { color: #7f5af0; } /* Player X color */
-        .chat-message-o { color: #2cb67d; } /* Player O color */
+        .timer-warning {
+            color: #ffcc00; /* Yellow for approaching limit */
+        }
+        .timer-critical {
+            color: #ff0000; /* Red for critical limit */
+        }
+        .chat-message-x { color: #7f5af0; } 
+        .chat-message-o { color: #2cb67d; } 
     </style>
 </head>
 <body>
@@ -200,6 +198,7 @@
     </div>
 
     <div id="aiControls" style="display: none;">
+        <p>AI is only supported for 3x3:</p>
         <button onclick="startGame('ai', 'easy', this)">Play AI (Easy)</button>
         <button onclick="startGame('ai', 'normal', this)">Play AI (Normal)</button>
         <button onclick="startGame('ai', 'hard', this)">Play AI (Hard)</button>
@@ -215,7 +214,7 @@
 
     <div id="game-info">
         <div>
-            <p id="timer" style="display: none;">Turn Time: 0s</p>
+            <p id="timer" style="display: none;">Turn Time: <span id="timerValue">0s</span></p>
             
             <div id="game-container">
                 <div id="game">
@@ -257,7 +256,7 @@
     <audio id="bgMusic" loop src="your_audio_file.mp3" preload="auto"></audio> 
 
     <script>
-        // --- UPDATED FIREBASE CONFIGURATION --- 
+        // --- FIREBASE CONFIGURATION --- 
         const firebaseConfig = { 
             apiKey: "AIzaSyAFUoT40IjaiqH2791QvyNUP6SakHarupY", 
             authDomain: "tic-tac-toe-9e69d.firebaseapp.com", 
@@ -268,18 +267,16 @@
             measurementId: "G-WQV8NJN397", 
             databaseURL: "https://tic-tac-toe-9e69d-default-rtdb.firebaseio.com" 
         }; 
-        // ------------------------------------- 
         
-        // Initialize Firebase ONLY if the necessary scripts are loaded
         if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
             firebase.initializeApp(firebaseConfig); 
             var db = firebase.database();
         } else if (typeof firebase === 'undefined') {
             console.warn("Firebase SDK not loaded. Online multiplayer mode will not work.");
-            var db = null; // Ensure db is defined even if null
+            var db = null; 
         }
         
-        let boardSize = 3; // NEW: Default board size
+        let boardSize = 3; 
         let board = Array(boardSize * boardSize).fill(''); 
         let currentPlayer = 'X'; 
         let isMuted = false; 
@@ -288,15 +285,16 @@
         let aiDifficulty = 'easy'; 
         let localPlayer = null; 
         let roomId = null; 
-
-        // --- NEW Timer/Chat State Variables ---
+        
+        // --- Timer State Variables ---
         let timerInterval = null; 
         let localMoveStartTime = Date.now();
-        // ------------------------------------
+        const TIME_LIMIT_SECONDS = 30; // Max time before turn passes
+        const TIMER_START_SECONDS = 5; // Time elapsed before timer displays
         
         // DOM Elements 
         const gameDiv = document.getElementById('game'); 
-        const aiControlsDiv = document.getElementById('aiControls'); // NEW
+        const aiControlsDiv = document.getElementById('aiControls'); 
         const scoreX = document.getElementById('scoreX'); 
         const scoreO = document.getElementById('scoreO'); 
         const scoreDraws = document.getElementById('scoreDraws'); 
@@ -314,77 +312,66 @@
         const chatMessages = document.getElementById('chat-messages'); 
         const chatInput = document.getElementById('chatInput'); 
         const timerDisplay = document.getElementById('timer'); 
+        const timerValueSpan = document.getElementById('timerValue'); // NEW span for value
 
-        // --- Board Size & Win Condition Logic ---
-        function getWinLength(size) {
-            return size; // N-in-a-Row
-        }
-        
-        function setBoardSize(size, button) {
-            boardSize = size;
-            const newBoardLength = size * size;
-            board = Array(newBoardLength).fill('');
-            
-            // Set grid columns and cell size via CSS variables
-            gameDiv.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-            
-            let cellSize, fontSize;
-            if (size === 3) {
-                cellSize = '100px';
-                fontSize = '2.5rem';
-                aiControlsDiv.style.display = 'block'; // Show AI for 3x3
-            } else if (size === 4) {
-                cellSize = '75px'; // Smaller cells for 4x4
-                fontSize = '2rem';
-                aiControlsDiv.style.display = 'none'; // Hide AI for larger boards
-            } else if (size === 5) {
-                cellSize = '60px'; // Even smaller cells for 5x5
-                fontSize = '1.5rem';
-                aiControlsDiv.style.display = 'none'; // Hide AI for larger boards
-            }
-            
-            gameDiv.style.setProperty('--cell-size', cellSize);
-            gameDiv.style.setProperty('--font-size', fontSize);
-            
-            // Activate the selected size button
-            document.querySelectorAll('#boardSizeControls button').forEach(btn => { 
-                btn.classList.remove('active'); 
-            }); 
-            if (button) { 
-                button.classList.add('active'); 
-            }
-            
-            // Ensure a mode is selected after changing size
-            if (mode === 'ai' && size !== 3) {
-                // Default to local if AI is selected on non-3x3 board
-                const localBtn = document.querySelector('#controls button:nth-child(1)'); // The 'Play with Friend' button
-                startGame('local', null, localBtn);
-                gameStatusP.textContent = `AI is only available for 3x3. Switched to Local mode for ${size}x${size}.`;
-            } else if (mode !== 'online') {
-                // If not online, just reset the board
-                resetGame();
-                gameStatusP.textContent = `Ready to play ${size}x${size} in ${mode} mode.`;
-            } else {
-                gameStatusP.textContent = `Please create or join an online game with size ${size}x${size}.`;
-            }
-        }
-        
-        // --- Timer Functions ---
+        // --- Turn Timer Logic ---
 
         /**
-         * Starts the turn timer, only showing it if time elapsed > 10s.
-         * @param {number} startTime - The timestamp (ms) of the last move.
+         * Logic to automatically pass the turn if the time limit is reached.
          */
+        function handleTimeLimitReached() {
+            if (!gameActive) {
+                stopTimer();
+                return;
+            }
+
+            const nextPlayer = currentPlayer === 'X' ? 'O' : 'X';
+
+            if (mode === 'online') {
+                if (currentPlayer === localPlayer) {
+                    // Current player ran out of time, update Firebase to switch turn
+                    gameStatusP.textContent = `Time expired! Turn passed to ${nextPlayer}.`;
+                    db.ref('games/' + roomId).update({
+                        currentPlayer: nextPlayer,
+                        lastMoveTime: firebase.database.ServerValue.TIMESTAMP // Reset timer for new player
+                    });
+                }
+            } else {
+                // Local/AI Mode
+                gameStatusP.textContent = `Time expired for ${currentPlayer}! Turn passed to ${nextPlayer}.`;
+                currentPlayer = nextPlayer;
+                resetLocalTimer(); // Resets the local clock for the new player
+                drawBoard();
+            }
+        }
+
         function startTimer(startTime) {
-            stopTimer(); // Clear any existing timer
+            stopTimer(); 
+            timerDisplay.style.color = '#f05a7f'; // Reset color
 
             timerInterval = setInterval(() => {
                 const elapsedMs = Date.now() - startTime;
                 const elapsedSec = Math.floor(elapsedMs / 1000);
 
-                if (elapsedSec >= 10) {
+                // Time Limit Check (30 seconds)
+                if (elapsedSec >= TIME_LIMIT_SECONDS) {
+                    stopTimer();
+                    handleTimeLimitReached();
+                    return; 
+                }
+
+                // Display Timer Check (Starts after 5 seconds)
+                if (elapsedSec >= TIMER_START_SECONDS) {
                     timerDisplay.style.display = 'block';
-                    timerDisplay.textContent = `Turn Time: ${elapsedSec}s`;
+                    timerValueSpan.textContent = `${elapsedSec}s`;
+
+                    // Style for warning/critical
+                    timerValueSpan.classList.remove('timer-warning', 'timer-critical');
+                    if (elapsedSec >= 25) {
+                        timerValueSpan.classList.add('timer-critical');
+                    } else if (elapsedSec >= 15) {
+                        timerValueSpan.classList.add('timer-warning');
+                    }
                 } else {
                     timerDisplay.style.display = 'none';
                 }
@@ -397,31 +384,78 @@
                 timerInterval = null;
             }
             timerDisplay.style.display = 'none';
-            timerDisplay.textContent = 'Turn Time: 0s';
+            timerValueSpan.textContent = '0s';
+            timerValueSpan.classList.remove('timer-warning', 'timer-critical');
         }
 
         function resetLocalTimer() {
             localMoveStartTime = Date.now();
-            if (mode === 'local' || mode === 'ai') {
+            if ((mode === 'local' || mode === 'ai') && gameActive) {
                 stopTimer();
                 startTimer(localMoveStartTime);
             }
         }
         
+        // --- Board Size & Win Condition Logic ---
+        function getWinLength(size) {
+            return size; // N-in-a-Row
+        }
+        
+        function setBoardSize(size, button) {
+            boardSize = size;
+            const newBoardLength = size * size;
+            board = Array(newBoardLength).fill('');
+            
+            gameDiv.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+            
+            let cellSize, fontSize;
+            if (size === 3) {
+                cellSize = '100px';
+                fontSize = '2.5rem';
+                aiControlsDiv.style.display = 'block'; 
+            } else if (size === 4) {
+                cellSize = '75px'; 
+                fontSize = '2rem';
+                aiControlsDiv.style.display = 'none'; 
+            } else if (size === 5) {
+                cellSize = '60px'; 
+                fontSize = '1.5rem';
+                aiControlsDiv.style.display = 'none'; 
+            }
+            
+            gameDiv.style.setProperty('--cell-size', cellSize);
+            gameDiv.style.setProperty('--font-size', fontSize);
+            
+            document.querySelectorAll('#boardSizeControls button').forEach(btn => { 
+                btn.classList.remove('active'); 
+            }); 
+            if (button) { 
+                button.classList.add('active'); 
+            }
+            
+            if (mode === 'ai' && size !== 3) {
+                const localBtn = document.querySelector('#controls button:nth-child(1)'); 
+                startGame('local', null, localBtn);
+                gameStatusP.textContent = `AI is only available for 3x3. Switched to Local mode for ${size}x${size}.`;
+            } else if (mode !== 'online') {
+                resetGame();
+                gameStatusP.textContent = `Ready to play ${size}x${size} in ${mode} mode.`;
+            } else {
+                gameStatusP.textContent = `Please create or join an online game with size ${size}x${size}.`;
+            }
+        }
+        
         // --- Game Logic Functions ---
 
-        /** * Renders the current state of the board array to the DOM. 
-         */ 
         function drawBoard() { 
             gameDiv.innerHTML = ''; 
             board.forEach((val, i) => { 
                 const cell = document.createElement('div'); 
                 cell.className = 'cell'; 
                 cell.textContent = val; 
-                cell.setAttribute('data-index', i); // Added for easier debugging/ref.
+                cell.setAttribute('data-index', i); 
                 
-                // Check win condition to apply 'winner' class
-                const result = checkWinner(board); 
+                const result = checkWinner(board, true); // Use true to check the global board
                 if (!gameActive && result.winningIndices && result.winningIndices.includes(i)) { 
                     cell.classList.add('winner'); 
                 } 
@@ -431,27 +465,22 @@
             
             // Update status for online play 
             if (mode === 'online' && localPlayer) { 
-                const result = checkWinner(board); 
                 if (!gameActive) { 
+                    const result = checkWinner(board, false);
                     gameStatusP.textContent = `Game Over! ${result.winner === 'Draw' ? 'It\'s a Draw!' : `${result.winner} wins!`}`; 
-                    stopTimer(); // Stop timer when game ends
+                    stopTimer(); 
                 } else { 
-                    gameStatusP.textContent = `You are ${localPlayer}. It is ${currentPlayer}'s turn.`; 
+                    const turnMessage = (currentPlayer === localPlayer) ? 'Your turn!' : `${currentPlayer}'s turn.`;
+                    gameStatusP.textContent = `You are ${localPlayer}. It is ${turnMessage}`; 
                 } 
             } else if (mode === 'online') { 
                 gameStatusP.textContent = 'Waiting to create or join a game...'; 
             } 
             
-            // Trigger AI move in AI mode, but only after player's move
-            if (mode === 'ai' && currentPlayer === 'O' && gameActive) {
-                // Only allow AI for 3x3 board
-                if (boardSize === 3) {
-                    // Short delay for visual effect
-                    setTimeout(aiMove, 500); 
-                } else {
-                    console.error("AI is only supported for 3x3.");
-                    gameStatusP.textContent = "AI is only supported for 3x3. Please select a different mode or board size.";
-                }
+            // Trigger AI move
+            if (mode === 'ai' && currentPlayer === 'O' && gameActive && boardSize === 3) {
+                // Short delay for visual effect
+                setTimeout(aiMove, 500); 
             }
         } 
 
@@ -467,32 +496,26 @@
             } else { 
                 board[index] = currentPlayer; 
                 drawBoard(); 
-                // Check and update game state for local/AI
-                const result = checkWinner(board);
+                const result = checkWinner(board, true);
                 if (result.winner) {
                     gameActive = false;
                     updateLocalScore(result.winner);
                     setTimeout(resetGame, 2000);
                 } else {
                     currentPlayer = currentPlayer === 'X' ? 'O' : 'X'; 
-                    resetLocalTimer(); // Reset timer on local/AI move
+                    resetLocalTimer(); 
                 }
             } 
         } 
 
-        // UPDATED: Dynamic win condition checker for N-in-a-Row
-        function checkWinner(currentBoard) {
+        function checkWinner(currentBoard, updateGlobalState = false) {
             const size = boardSize;
-            const N = getWinLength(size);
-            const cells = size * size;
+            // For 3x3 (AI/Minimax), we only look for 3 in a row, even if boardSize is set higher for local play.
+            const N = (updateGlobalState && size > 3) ? size : 3; 
 
-            // Helper to get index from (row, col)
             const index = (r, c) => r * size + c;
-
-            // Check if (r, c) is a valid position
             const isValid = (r, c) => r >= 0 && r < size && c >= 0 && c < size;
 
-            // Check for a win starting at (r, c) in direction (dr, dc)
             const checkLine = (r, c, dr, dc) => {
                 const player = currentBoard[index(r, c)];
                 if (!player) return null;
@@ -510,23 +533,18 @@
                 return { winner: player, winningIndices };
             };
 
-            // Directions: Horizontal, Vertical, Diagonals
             const directions = [
-                [0, 1], // Horizontal
-                [1, 0], // Vertical
-                [1, 1], // Diagonal (Top-Left to Bottom-Right)
-                [1, -1] // Anti-Diagonal (Top-Right to Bottom-Left)
+                [0, 1], [1, 0], [1, 1], [1, -1] 
             ];
 
             for (let r = 0; r < size; r++) {
                 for (let c = 0; c < size; c++) {
-                    // Only need to check for a line if a cell is occupied
                     if (currentBoard[index(r, c)]) {
                         for (let [dr, dc] of directions) {
                             const result = checkLine(r, c, dr, dc);
                             if (result) {
-                                // Only update global state if checking the main game board
-                                if (currentBoard === board) {
+                                // Only update global state if explicitly requested (i.e., not during Minimax)
+                                if (updateGlobalState) {
                                     gameActive = false;
                                 }
                                 return result;
@@ -536,9 +554,8 @@
                 }
             }
 
-            // Check for Draw (Board full)
             if (!currentBoard.includes('')) {
-                if (currentBoard === board) {
+                if (updateGlobalState) {
                     gameActive = false;
                     if (mode !== 'online') { 
                         updateLocalScore('Draw');
@@ -548,11 +565,11 @@
                 return { winner: 'Draw' };
             }
 
-            return {}; // Game still ongoing
+            return {}; 
         }
 
 
-        // --- Score Management --- 
+        // --- Score Management, Game Flow, and Mode Switching (Unchanged) --- 
         function updateLocalScore(winner) { 
             if (winner === 'X') scoreX.textContent = +scoreX.textContent + 1; 
             else if (winner === 'O') scoreO.textContent = +scoreO.textContent + 1; 
@@ -568,20 +585,20 @@
             localPlayerDisplay.textContent = localPlayer; 
         } 
 
-        // --- Game Flow and Mode Switching --- 
         function resetGame() { 
+            stopTimer(); // Ensure timer stops during reset
             const newBoardLength = boardSize * boardSize;
             board = Array(newBoardLength).fill(''); 
             currentPlayer = 'X'; 
             gameActive = true; 
             drawBoard(); 
-            resetLocalTimer(); // Start timer on reset for local/AI
+            resetLocalTimer(); 
             gameStatusP.textContent = (mode === 'local' || mode === 'ai') ? `Game started. X's turn.` : `You are ${localPlayer}. It is X's turn.`;
         } 
         
         function setActiveButton(activeButton) { 
             document.querySelectorAll('#controls button').forEach(btn => { 
-                btn.classList.remove('active'); 
+                if (btn.id !== 'muteBtn') btn.classList.remove('active'); 
             }); 
             if (activeButton) { 
                 activeButton.classList.add('active'); 
@@ -591,24 +608,19 @@
         function startGame(selectedMode, difficulty, button) { 
             mode = selectedMode; 
             
-            // Highlight the selected mode button
             document.querySelectorAll('#controls button').forEach(btn => { 
-                // Only clear the main mode buttons (not mute button)
                 if (btn.id !== 'muteBtn') btn.classList.remove('active'); 
             }); 
-            if (button) { 
+            if (button && button.parentElement.id === 'controls') { 
                 button.classList.add('active'); 
             } 
             
-            // Handle AI button activation separately
             document.querySelectorAll('#aiControls button').forEach(btn => { 
                 btn.classList.remove('active'); 
             });
             if (mode === 'ai') {
                 button.classList.add('active'); 
-                // Check if board size is 3x3 for AI
                 if (boardSize !== 3) {
-                    console.error("AI only supported on 3x3 board.");
                     const localBtn = document.querySelector('#controls button:nth-child(1)');
                     startGame('local', null, localBtn);
                     gameStatusP.textContent = `AI is only available for 3x3. Switched to Local mode for ${boardSize}x${boardSize}.`;
@@ -616,18 +628,15 @@
                 }
             }
 
-
             onlineControlsDiv.style.display = 'none'; 
             onlineScoreboardDiv.style.display = 'none'; 
             localScoreboardDiv.style.display = 'inline-block'; 
-            chatContainer.style.display = 'none'; // Hide chat
+            chatContainer.style.display = 'none'; 
             localPlayer = null; 
             
-            // Clear previous Firebase listener 
             if (db && roomId) db.ref('games/' + roomId).off(); 
-            roomId = null; // Clear room ID
+            roomId = null; 
             
-            // Reset local scores when starting a new non-online game type 
             scoreX.textContent = '0'; 
             scoreO.textContent = '0'; 
             scoreDraws.textContent = '0'; 
@@ -646,30 +655,25 @@
             mode = 'online'; 
             setActiveButton(button); 
             
-            // De-activate AI buttons
             document.querySelectorAll('#aiControls button').forEach(btn => btn.classList.remove('active'));
             
             onlineControlsDiv.style.display = 'block'; 
             onlineScoreboardDiv.style.display = 'inline-block'; 
             localScoreboardDiv.style.display = 'none'; 
-            chatContainer.style.display = 'block'; // Show chat
-            stopTimer(); // Stop local timer
+            chatContainer.style.display = 'block'; 
+            stopTimer(); 
             gameStatusP.textContent = `Enter a room ID or generate one for ${boardSize}x${boardSize} game.`; 
             
-            // Clear previous Firebase listener 
             if (db && roomId) db.ref('games/' + roomId).off(); 
-            roomId = null; // Clear room ID
+            roomId = null; 
             localPlayer = null;
             
-            // Reset the board display
             const newBoardLength = boardSize * boardSize;
             board = Array(newBoardLength).fill(''); 
             drawBoard();
         } 
 
-        // --- Online Multiplayer Functions --- 
-
-        // NEW: Handles online chat
+        // --- Online Multiplayer Functions (Modified for Timer/Game Flow) --- 
         function sendChatMessage() {
             if (!db || !roomId || !localPlayer) return;
 
@@ -686,11 +690,9 @@
             chatInput.value = '';
         }
 
-        // NEW: Syncs chat messages
         function syncChat() {
             if (!db || !roomId) return;
 
-            // Clear previous messages
             chatMessages.innerHTML = ''; 
 
             db.ref('games/' + roomId + '/chat').on('child_added', snapshot => {
@@ -699,13 +701,11 @@
                 const message = messageData.message;
 
                 const msgElement = document.createElement('p');
-                // Use a short, fixed length to prevent chat message wrapping issues
                 const senderDisplay = sender + (messageData.timestamp ? '' : ' (Pending)'); 
                 msgElement.textContent = `[${senderDisplay}]: ${message}`;
                 msgElement.className = sender === 'X' ? 'chat-message-x' : 'chat-message-o';
                 chatMessages.appendChild(msgElement);
                 
-                // Auto-scroll to the bottom
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             });
         }
@@ -722,7 +722,7 @@
 
             db.ref('games/' + roomId).set({ 
                 board: Array(newBoardLength).fill(''), 
-                boardSize: boardSize, // NEW: Store board size
+                boardSize: boardSize, 
                 currentPlayer: 'X', 
                 gameActive: true, 
                 playerX: true, 
@@ -748,7 +748,6 @@
                 const gameState = snapshot.val(); 
                 if (snapshot.exists() && !gameState.playerO) { 
                     localPlayer = 'O'; 
-                    // NEW: Sync the board size
                     if (gameState.boardSize !== boardSize) {
                         setBoardSize(gameState.boardSize, document.getElementById('size' + gameState.boardSize + 'x' + gameState.boardSize + 'Btn') || null);
                     }
@@ -773,7 +772,6 @@
                 if (!snapshot.exists()) return; 
                 const gameState = snapshot.val(); 
                 
-                // NEW: Handle board size sync
                 if (gameState.boardSize && gameState.boardSize !== boardSize) {
                     setBoardSize(gameState.boardSize, document.getElementById('size' + gameState.boardSize + 'x' + gameState.boardSize + 'Btn') || null);
                 }
@@ -782,10 +780,13 @@
                 currentPlayer = gameState.currentPlayer; 
                 gameActive = gameState.gameActive; 
                 
-                if (gameState.lastMoveTime) {
+                // Only start the local timer if it's the local player's turn
+                if (gameState.lastMoveTime && gameActive && localPlayer === currentPlayer) {
                     startTimer(gameState.lastMoveTime);
+                } else if (gameActive) {
+                    stopTimer(); // Stop if it's the opponent's turn
                 }
-
+                
                 if (gameState.scores) { 
                     updateOnlineScoreboard(gameState.scores); 
                 } 
@@ -793,7 +794,7 @@
                 
                 if (!gameActive) { 
                     stopTimer(); 
-                    const result = checkWinner(board); 
+                    const result = checkWinner(board, false); 
                     if (localPlayer === 'X' || localPlayer === 'O') { 
                         if (localPlayer === 'X') {
                             setTimeout(() => { 
@@ -826,8 +827,10 @@
         
         function handleOnlineMove(index) { 
             if (!db) return;
+            stopTimer(); // Stop timer immediately on move
+            
             board[index] = localPlayer; 
-            const result = checkWinner(board); 
+            const result = checkWinner(board, false); 
             const nextPlayer = localPlayer === 'X' ? 'O' : 'X'; 
             
             db.ref('games/' + roomId).update({ 
@@ -839,35 +842,22 @@
         } 
 
         // ------------------------------------------------------------------------------------------------
-        // --- MINIMAX AI LOGIC (Restricted to 3x3) ---
+        // --- MINIMAX AI LOGIC (3x3 only) ---
         // ------------------------------------------------------------------------------------------------
         
-        // Score constants for Minimax 
         const scores = { 'O': 10, 'X': -10, 'Draw': 0 }; 
 
-        // Helper function to get available moves
         function getEmptyIndices(currentBoard) {
             return currentBoard.map((v, i) => v === '' ? i : null).filter(v => v !== null);
         }
         
         /**
-         * The Minimax algorithm that recursively evaluates the board state. (Only used for 3x3)
-         * NOTE: checkWinner is designed to work with any board size, but N=3 for 3x3 board.
-         * @param {Array<string>} currentBoard - The board state to evaluate.
-         * @param {string} player - The player whose turn it is in this evaluation (X or O).
-         * @returns {number} The score for the current board state.
+         * The Minimax algorithm that recursively evaluates the board state (3x3 only).
          */
         function minimax(currentBoard, player) {
-            // Temporarily set boardSize to 3 for Minimax evaluation, as it's only called when size is 3.
-            const sizeBefore = boardSize;
-            boardSize = 3; 
-
-            const result = checkWinner(currentBoard); 
+            // CRITICAL FIX: Use checkWinner with updateGlobalState=false to prevent global state corruption.
+            const result = checkWinner(currentBoard, false); 
             
-            // Restore boardSize
-            boardSize = sizeBefore;
-            
-            // Base case: check for Win/Loss/Draw
             if (result.winner !== undefined && result.winner !== null) {
                 return scores[result.winner]; 
             }
@@ -881,7 +871,7 @@
                     let nextBoard = currentBoard.slice(); 
                     nextBoard[i] = player;
                     
-                    let score = minimax(nextBoard, 'X'); // Switch to human player
+                    let score = minimax(nextBoard, 'X'); 
                     bestScore = Math.max(score, bestScore);
                 }
                 return bestScore;
@@ -892,29 +882,22 @@
                     let nextBoard = currentBoard.slice(); 
                     nextBoard[i] = player;
                     
-                    let score = minimax(nextBoard, 'O'); // Switch to AI player
+                    let score = minimax(nextBoard, 'O'); 
                     bestScore = Math.min(score, bestScore);
                 }
                 return bestScore;
             }
         }
         
-        /**
-         * Finds the optimal move for the AI ('O'). (Only used for 3x3)
-         * @param {Array<string>} currentBoard - The main game board.
-         * @returns {number} The index (0-8) of the best move.
-         */
         function getBestMove(currentBoard) {
             let bestScore = -Infinity;
             let move = -1;
             let availableSpots = getEmptyIndices(currentBoard);
         
             for (let i of availableSpots) {
-                // Create a copy for testing the move
                 let tempBoard = currentBoard.slice(); 
-                tempBoard[i] = 'O'; // AI makes the move
+                tempBoard[i] = 'O'; 
                 
-                // Calculate the score of this move
                 let score = minimax(tempBoard, 'X'); 
                 
                 if (score > bestScore) {
@@ -925,35 +908,33 @@
             return move;
         }
 
-        // --- AI Move Function (Implements Difficulty) --- 
         function aiMove() { 
             if (!gameActive || currentPlayer !== 'O' || boardSize !== 3) return; 
+            
+            stopTimer(); // Stop the timer while AI calculates
             
             let empty = getEmptyIndices(board); 
             let move = -1; 
 
             if (aiDifficulty === 'easy') { 
-                // Purely random move 
                 move = empty[Math.floor(Math.random() * empty.length)]; 
             } else if (aiDifficulty === 'normal') { 
-                // 75% optimal, 25% random 
                 if (Math.random() < 0.75) { 
                     move = getBestMove(board); 
                 } else { 
                     move = empty[Math.floor(Math.random() * empty.length)]; 
                 } 
             } else if (aiDifficulty === 'hard') { 
-                // Always plays optimal Minimax move (unbeatable) 
                 move = getBestMove(board); 
             } 
 
             if (move !== -1) { 
                 board[move] = 'O'; 
                 drawBoard(); 
-                const result = checkWinner(board);
+                const result = checkWinner(board, true); // Check winner and update global state
                 if (!result.winner) {
                     currentPlayer = 'X'; 
-                    resetLocalTimer(); // Reset timer after AI move
+                    resetLocalTimer(); 
                 }
             } 
         } 
@@ -966,11 +947,9 @@
 
         // Initial setup
         document.addEventListener('DOMContentLoaded', () => {
-            // Set the default board size to 3x3 on load
             const size3x3Btn = document.getElementById('size3x3Btn');
             setBoardSize(3, size3x3Btn);
             
-            // Default to local game mode
             const localBtn = document.querySelector('#controls button:nth-child(1)');
             startGame('local', null, localBtn);
         });

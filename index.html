@@ -43,6 +43,9 @@
         } 
         h1 { font-size: 2.5rem; }
         
+        /* * Screens are hidden by default via `display: none;` and shown 
+         * via `display: flex;` when the `active` class is applied.
+         */
         .screen {
             width: 100%;
             height: 100%;
@@ -52,16 +55,18 @@
             top: 0;
             left: 50%;
             transform: translateX(-50%);
-            display: none; 
+            display: none; /* Hidden by default */
             padding: 20px;
             box-sizing: border-box;
             background: var(--color-dark-bg); 
             flex-direction: column;
             animation: fadeIn 0.3s ease-in-out;
-            z-index: 100; /* Standard screen layer */
+            z-index: 100; 
         }
         
-        .screen.active { display: flex; }
+        .screen.active { 
+            display: flex; /* Shown when active */
+        }
 
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -77,13 +82,17 @@
 
         /* --- SPLASH SCREEN SPECIFIC --- */
         #splash-screen {
-            display: flex; 
+            /* * CRITICAL FIX: The splash screen must be active initially 
+             * but is manually controlled by JS after the button click. 
+             * It needs the highest z-index until it's hidden.
+             */
+            z-index: 200; 
+            display: flex; /* Overriding 'display: none' for initial view */
             justify-content: center;
             align-items: center;
             flex-direction: column;
-            background: var(--color-dark-bg);
-            z-index: 200; 
         }
+
         #splash-screen h1 {
             font-size: 4rem;
             margin-bottom: 5px;
@@ -97,18 +106,18 @@
         
         /* --- TAGLINE VISIBILITY ENHANCEMENT --- */
         #tagline {
-            font-size: 1.5rem; /* Increased font size */
-            font-weight: 900; /* Made it bold */
+            font-size: 1.5rem; 
+            font-weight: 900; 
             font-style: italic;
             color: var(--color-secondary-accent);
-            text-shadow: 0 0 10px rgba(57, 255, 20, 1); /* Sharper, brighter glow */
+            text-shadow: 0 0 10px rgba(57, 255, 20, 1); 
             margin-top: 20px;
             margin-bottom: 30px; 
         }
         
         /* Play Button Style */
         #play-button {
-            background: var(--color-primary-accent); /* Electric Blue */
+            background: var(--color-primary-accent); 
             color: var(--color-dark-bg);
             font-size: 1.5rem;
             padding: 15px 50px;
@@ -126,7 +135,7 @@
         /* Loading Spinner Style */
         #loading-spinner {
             border: 8px solid var(--color-panel-bg); 
-            border-top: 8px solid var(--color-secondary-accent); /* Neon Green spinner */
+            border-top: 8px solid var(--color-secondary-accent); 
             border-radius: 50%;
             width: 60px;
             height: 60px;
@@ -140,7 +149,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* --- BUTTONS & INPUTS --- */
+        /* --- BUTTONS & INPUTS (Unchanged) --- */
         button { 
             padding: 14px 30px; 
             margin: 8px; 
@@ -174,7 +183,7 @@
             box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
         }
         
-        /* Fixed top controls */
+        /* Fixed top controls (Unchanged) */
         .fixed-control {
             position: fixed;
             top: 10px;
@@ -191,7 +200,7 @@
         #backBtn { left: 10px; display: none; }
         #chatOpenBtn { right: 100px; display: none; } 
 
-        /* --- GAME BOARD --- */
+        /* --- GAME BOARD (Unchanged) --- */
         #game { 
             grid-gap: 8px; 
             padding: 10px;
@@ -200,7 +209,7 @@
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.3);
             display: grid;
             grid-template-columns: repeat(var(--board-size), 1fr);
-            width: 95%; /* Make it responsive */
+            width: 95%; 
             max-width: 450px;
             margin: 0 auto;
         } 
@@ -311,7 +320,7 @@
     <button id="backBtn" onclick="handleBack(true)" class="fixed-control">← Back</button>
     <button id="chatOpenBtn" onclick="toggleChatOverlay()" class="fixed-control">💬 Chat</button>
 
-    <div id="splash-screen" class="screen active">
+    <div id="splash-screen" class="screen">
         <p>Seb Creations Presents</p>
         <h1>XOX ARENA</h1>
         <p id="tagline">“Think Fast. Strike Smart. Rule the Grid.”</p>
@@ -434,9 +443,13 @@
         const LOADING_TIME_MS = 5000; // 5 seconds
 
         // Fetching elements early
+        const splashScreen = document.getElementById('splash-screen');
         const playButton = document.getElementById('play-button');
         const loadingSpinner = document.getElementById('loading-spinner');
         
+        // CRITICAL INITIAL STATE: Make sure splash screen is visible on load.
+        splashScreen.classList.add('active'); 
+
         /**
          * Handles the click on the "PLAY GAME" button, showing the spinner
          * and waiting for the loading time before transitioning to the home screen.
@@ -451,11 +464,13 @@
                 // 3. Navigate to the home screen after the delay
                 showScreen('home-screen');
                 
-                // *** THE FIX: Explicitly remove the 'active' class from splash-screen to ensure it hides ***
-                const splashScreen = document.getElementById('splash-screen');
-                if (splashScreen) splashScreen.classList.remove('active');
+                // *** THE FINAL FIX: Explicitly set display: none to force the splash screen off the stack ***
+                if (splashScreen) {
+                    splashScreen.classList.remove('active');
+                    splashScreen.style.display = 'none'; 
+                }
                 
-                // 4. Reset splash screen button state
+                // 4. Reset splash screen button state (optional, as the screen is now hidden)
                 if (loadingSpinner) loadingSpinner.style.display = 'none';
                 if (playButton) playButton.style.display = 'block'; 
             }, LOADING_TIME_MS);
@@ -535,13 +550,9 @@
         // --- SCREEN MANAGEMENT ---
         
         function showScreen(screenId, isGameStart = false) {
-            // Hide all full-page screens
+            // Hide all full-page screens EXCEPT the splash screen, which is handled separately
             document.querySelectorAll('.screen').forEach(screen => {
-                 // **CRITICAL FIX:** Only remove 'active' from the current screen, 
-                 // not every single screen, which ensures the target screen can become active.
-                 // The old approach was hiding the splash screen, but then potentially re-hiding 
-                 // the screen being transitioned TO if it had the 'active' class from before.
-                 if (screen.id !== screenId) { 
+                 if (screen.id !== screenId && screen.id !== 'splash-screen') { 
                      screen.classList.remove('active');
                  }
             });

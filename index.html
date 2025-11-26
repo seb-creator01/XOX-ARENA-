@@ -447,6 +447,11 @@
             setTimeout(() => {
                 // 3. Navigate to the home screen after the delay
                 showScreen('home-screen');
+                
+                // *** THE FIX: Explicitly remove the 'active' class from splash-screen to hide it ***
+                const splashScreen = document.getElementById('splash-screen');
+                if (splashScreen) splashScreen.classList.remove('active');
+                
                 // 4. Reset splash screen state (optional, as it's typically hidden)
                 if (loadingSpinner) loadingSpinner.style.display = 'none';
                 if (playButton) playButton.style.display = 'block'; 
@@ -529,7 +534,10 @@
         function showScreen(screenId, isGameStart = false) {
             // Hide all full-page screens
             document.querySelectorAll('.screen').forEach(screen => {
-                screen.classList.remove('active');
+                // IMPORTANT: This handles the transition, removing 'active' from the previous screen
+                if (screen.id !== 'splash-screen') { // Skip hiding splash screen here, it's handled by handlePlayClick
+                    screen.classList.remove('active');
+                }
             });
 
             // Show the requested screen
@@ -1179,7 +1187,7 @@
         } 
         
         // --- JAVASCRIPT FIX FOR MOBILE VH SCROLLING (Unchanged) ---
-        let resizeTimer; // Define resizeTimer globally
+        let resizeTimer; 
 
         function setAppHeight() {
             let vh = window.innerHeight * 0.01;

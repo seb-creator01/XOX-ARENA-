@@ -94,11 +94,14 @@
             font-size: 1.2rem;
             margin: 5px;
         }
+        
+        /* --- TAGLINE VISIBILITY ENHANCEMENT --- */
         #tagline {
-            font-size: 1.2rem;
+            font-size: 1.5rem; /* Increased font size */
+            font-weight: 900; /* Made it bold */
             font-style: italic;
             color: var(--color-secondary-accent);
-            text-shadow: 0 0 5px rgba(57, 255, 20, 0.8);
+            text-shadow: 0 0 10px rgba(57, 255, 20, 1); /* Sharper, brighter glow */
             margin-top: 20px;
             margin-bottom: 30px; 
         }
@@ -321,7 +324,7 @@
     <div id="home-screen" class="screen">
         <div class="screen-content">
             <h1>XOX ARENA</h1>
-            <p id="tagline" style="margin-top: 0; font-size: 1rem;">“Think Fast. Strike Smart. Rule the Grid.”</p>
+            <p id="tagline" style="margin-top: 0;">“Think Fast. Strike Smart. Rule the Grid.”</p>
             <div id="main-controls" style="display: flex; flex-direction: column; align-items: center; margin-top: 50px;">
                 <button onclick="showScreen('local-config')">PLAY LOCAL / AI</button>
                 <button onclick="showScreen('online-lobby')">ONLINE MULTIPLAYER</button>
@@ -448,11 +451,11 @@
                 // 3. Navigate to the home screen after the delay
                 showScreen('home-screen');
                 
-                // *** THE FIX: Explicitly remove the 'active' class from splash-screen to hide it ***
+                // *** THE FIX: Explicitly remove the 'active' class from splash-screen to ensure it hides ***
                 const splashScreen = document.getElementById('splash-screen');
                 if (splashScreen) splashScreen.classList.remove('active');
                 
-                // 4. Reset splash screen state (optional, as it's typically hidden)
+                // 4. Reset splash screen button state
                 if (loadingSpinner) loadingSpinner.style.display = 'none';
                 if (playButton) playButton.style.display = 'block'; 
             }, LOADING_TIME_MS);
@@ -534,10 +537,13 @@
         function showScreen(screenId, isGameStart = false) {
             // Hide all full-page screens
             document.querySelectorAll('.screen').forEach(screen => {
-                // IMPORTANT: This handles the transition, removing 'active' from the previous screen
-                if (screen.id !== 'splash-screen') { // Skip hiding splash screen here, it's handled by handlePlayClick
-                    screen.classList.remove('active');
-                }
+                 // **CRITICAL FIX:** Only remove 'active' from the current screen, 
+                 // not every single screen, which ensures the target screen can become active.
+                 // The old approach was hiding the splash screen, but then potentially re-hiding 
+                 // the screen being transitioned TO if it had the 'active' class from before.
+                 if (screen.id !== screenId) { 
+                     screen.classList.remove('active');
+                 }
             });
 
             // Show the requested screen

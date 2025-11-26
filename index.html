@@ -54,7 +54,9 @@
         #game { 
             display: grid; 
             grid-gap: 5px; 
-            max-width: 100vw; 
+            /* Mobile responsiveness for the board */
+            width: 95vw; /* Use 95% of viewport width */
+            max-width: 500px; /* Cap size on desktop */
             margin: auto;
         } 
         .cell { 
@@ -291,6 +293,7 @@
         let localMoveStartTime = Date.now();
         const TIME_LIMIT_SECONDS = 30; // Max time before turn passes
         const TIMER_START_SECONDS = 5; // Time elapsed before timer displays
+        let autoResetTimeout = null; // To hold the timeout ID for online reset
         
         // DOM Elements 
         const gameDiv = document.getElementById('game'); 
@@ -389,6 +392,10 @@
                 clearInterval(timerInterval);
                 timerInterval = null;
             }
+            if (autoResetTimeout) {
+                clearTimeout(autoResetTimeout);
+                autoResetTimeout = null;
+            }
             timerDisplay.style.display = 'none';
             timerValueSpan.textContent = '0s';
             timerValueSpan.classList.remove('timer-warning', 'timer-critical');
@@ -415,22 +422,13 @@
             gameDiv.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
             
             let cellSize, fontSize;
-            if (size === 3) {
-                cellSize = '100px';
-                fontSize = '2.5rem';
-                aiControlsDiv.style.display = 'block'; 
-            } else if (size === 4) {
-                cellSize = '75px'; 
-                fontSize = '2rem';
-                aiControlsDiv.style.display = 'none'; 
-            } else if (size === 5) {
-                cellSize = '60px'; 
-                fontSize = '1.5rem';
-                aiControlsDiv.style.display = 'none'; 
-            }
+            // Calculate cell size based on screen width for responsiveness
+            const containerWidth = Math.min(window.innerWidth * 0.95, 500); // 95vw up to 500px
+            cellSize = (containerWidth / size) - 5; // 5 is grid gap
+            fontSize = cellSize / 2.5; 
             
-            gameDiv.style.setProperty('--cell-size', cellSize);
-            gameDiv.style.setProperty('--font-size', fontSize);
+            gameDiv.style.setProperty('--cell-size', `${cellSize}px`);
+            gameDiv.style.setProperty('--font-size', `${fontSize}px`);
             
             document.querySelectorAll('#boardSizeControls button').forEach(btn => { 
                 btn.classList.remove('active'); 
@@ -448,7 +446,7 @@
                 gameStatusP.textContent = `Ready to play ${size}x${size} in ${mode} mode.`;
             } else {
                 // *** ONLINE FIX: If the board size is changed while connected, 
-                // send the new size to the opponent and reset the board for a new game.
+                // update Firebase to force a new game on the new size
                 if (roomId && localPlayer) {
                     gameStatusP.textContent = `New board size ${size}x${size} selected. Starting new round...`;
                     db.ref('games/' + roomId).update({
@@ -492,7 +490,7 @@
                     stopTimer(); 
                 } else { 
                     const turnMessage = (currentPlayer === localPlayer) ? 'Your turn!' : `${currentPlayer}'s turn.`;
-                    gameStatusP.textContent = `You are ${localPlayer}. It is ${turnMessage}`; 
+                    gameStatusP.textContent = `You are ${localPlayer}. It is ${turnMessage} on a ${boardSize}x${boardSize} board.`; 
                 } 
             } else if (mode === 'online') { 
                 gameStatusP.textContent = 'Waiting to create or join a game...'; 
@@ -518,7 +516,6 @@
                 
                 if (result.winner) {
                     // Game Over - DrawBoard must be called one last time to show the winner highlight
-                    // Note: checkWinner(..., true) already set gameActive=false
                     updateLocalScore(result.winner);
                     drawBoard(); // REDRAW with winning highlight
                     setTimeout(resetGame, 2000);
@@ -539,7 +536,6 @@
         function checkWinner(currentBoard, updateGlobalState = false) {
             const size = boardSize;
             // The N value determines how many in a row wins. 
-            // In pure 3x3 (AI/Minimax), N=3. For larger local boards, N=size.
             const N = (mode === 'ai' || size === 3) ? 3 : size; 
 
             const index = (r, c) => r * size + c;
@@ -572,7 +568,6 @@
                         for (let [dr, dc] of directions) {
                             const result = checkLine(r, c, dr, dc);
                             if (result) {
-                                // FIX: If a win is found, update state if requested, and return immediately.
                                 if (updateGlobalState) {
                                     gameActive = false; 
                                 }
@@ -599,7 +594,7 @@
         }
 
 
-        // --- Score Management, Game Flow, and Mode Switching (Unchanged) --- 
+        // --- Score Management, Game Flow, and Mode Switching --- 
         function updateLocalScore(winner) { 
             if (winner === 'X') scoreX.textContent = +scoreX.textContent + 1; 
             else if (winner === 'O') scoreO.textContent = +scoreO.textContent + 1; 
@@ -616,22 +611,20 @@
         } 
 
         function resetGame() { 
-            stopTimer(); // Ensure timer stops during reset
+            stopTimer(); 
             const newBoardLength = boardSize * boardSize;
             board = Array(newBoardLength).fill(''); 
             currentPlayer = 'X'; 
             gameActive = true; 
             drawBoard(); 
-            resetLocalTimer(); // Start timer for X
+            resetLocalTimer(); 
             gameStatusP.textContent = (mode === 'local' || mode === 'ai') ? `Game started. X's turn.` : `You are ${localPlayer}. It is X's turn.`;
         } 
         
         function setActiveButton(activeButton) { 
-            // Clear active class from main controls
             document.querySelectorAll('#controls button').forEach(btn => { 
                 if (btn.id !== 'muteBtn') btn.classList.remove('active'); 
             }); 
-            // Clear active class from AI controls
             document.querySelectorAll('#aiControls button').forEach(btn => { 
                 btn.classList.remove('active'); 
             });
@@ -642,9 +635,9 @@
         } 
         
         function startGame(selectedMode, difficulty, button) { 
+            // Existing logic for local/AI mode start (unchanged)
             mode = selectedMode; 
             
-            // Clear active class from main controls, but apply to the mode button clicked
             document.querySelectorAll('#controls button').forEach(btn => { 
                 if (btn.id !== 'muteBtn') btn.classList.remove('active'); 
             }); 
@@ -652,17 +645,14 @@
                 button.classList.add('active'); 
             } 
             
-            // Handle AI button activation
             document.querySelectorAll('#aiControls button').forEach(btn => { 
                 btn.classList.remove('active'); 
             });
             if (mode === 'ai') {
                 aiDifficulty = difficulty; 
-                // Find and activate the correct AI difficulty button
                 if (button && button.parentElement.id === 'aiControls') {
                     button.classList.add('active'); 
                 }
-
                 if (boardSize !== 3) {
                     const localBtn = document.querySelector('#controls button:nth-child(1)');
                     startGame('local', null, localBtn);
@@ -697,7 +687,6 @@
             mode = 'online'; 
             setActiveButton(button); 
             
-            // Hide AI buttons/activation
             document.querySelectorAll('#aiControls button').forEach(btn => btn.classList.remove('active'));
             
             onlineControlsDiv.style.display = 'block'; 
@@ -716,7 +705,7 @@
             drawBoard();
         } 
 
-        // --- Online Multiplayer Functions (RESET/BOARD SIZE CHANGES) --- 
+        // --- Online Multiplayer Functions --- 
         function sendChatMessage() {
             if (!db || !roomId || !localPlayer) return;
 
@@ -765,7 +754,7 @@
             setBoardSize(boardSize, document.querySelector(`#boardSizeControls button[id="size${boardSize}x${boardSize}Btn"]`) || null);
 
             db.ref('games/' + roomId).set({ 
-                board: Array(boardSize * boardSize).fill(''), // Use current boardSize
+                board: Array(boardSize * boardSize).fill(''), 
                 boardSize: boardSize, 
                 currentPlayer: 'X', 
                 gameActive: true, 
@@ -796,7 +785,6 @@
                     if (gameState.boardSize !== boardSize) {
                         setBoardSize(gameState.boardSize, document.getElementById('size' + gameState.boardSize + 'x' + gameState.boardSize + 'Btn') || null);
                     } else {
-                        // If size matches, still ensure local state is clean
                         setBoardSize(boardSize, document.querySelector(`#boardSizeControls button[id="size${boardSize}x${boardSize}Btn"]`) || null);
                     }
                     
@@ -820,7 +808,7 @@
                 if (!snapshot.exists()) return; 
                 const gameState = snapshot.val(); 
                 
-                // IMPORTANT: Sync board size if it changes in Firebase (e.g., if Player X changed it)
+                // IMPORTANT: Sync board size if it changes in Firebase 
                 if (gameState.boardSize && gameState.boardSize !== boardSize) {
                     setBoardSize(gameState.boardSize, document.getElementById('size' + gameState.boardSize + 'x' + gameState.boardSize + 'Btn') || null);
                 }
@@ -830,11 +818,10 @@
                 currentPlayer = gameState.currentPlayer; 
                 gameActive = gameState.gameActive; 
                 
-                // Only start the local timer if it's the local player's turn
                 if (gameState.lastMoveTime && gameActive && localPlayer === currentPlayer) {
                     startTimer(gameState.lastMoveTime);
                 } else if (gameActive) {
-                    stopTimer(); // Stop if it's the opponent's turn
+                    stopTimer(); 
                 }
                 
                 if (gameState.scores) { 
@@ -842,21 +829,19 @@
                 } 
                 drawBoard(); 
                 
-                // *** FIX: Automatic Reset Logic ***
+                // *** FIX: Automatic Reset Trigger ***
                 if (prevGameActive && !gameActive) { 
-                    // Game just ended, update scores and reset automatically
-                    stopTimer(); 
-                    const result = checkWinner(board, false); 
+                    // Game just ended. Set a timeout for the winning player to reset the board.
+                    const result = checkWinner(board, false);
                     
-                    // Only the player who made the last move (or X if host) handles the Firebase reset
-                    if (localPlayer === 'X' || localPlayer === 'O') {
-                        // Wait a few seconds to let players see the win marker
-                        setTimeout(() => { 
-                            // Recalculate scores for the reset
+                    autoResetTimeout = setTimeout(() => { 
+                        // Only the player who won or the game ended on (or X if host, as a fallback) handles the reset.
+                        // This prevents multiple clients from trying to reset simultaneously.
+                        if (localPlayer === result.winner || localPlayer === 'X' || localPlayer === 'O') {
+                            
                             let newScores = gameState.scores || { scoreX: 0, scoreO: 0, draws: 0 }; 
-                            if (result.winner === 'X') newScores.scoreX++; 
-                            else if (result.winner === 'O') newScores.scoreO++; 
-                            else if (result.winner === 'Draw') newScores.draws++; 
+                            // Score was already updated by the winning move in handleOnlineMove. 
+                            // We just force the reset now.
                             
                             const newBoardLength = boardSize * boardSize;
 
@@ -865,31 +850,43 @@
                                 currentPlayer: 'X', 
                                 gameActive: true, 
                                 scores: newScores,
-                                boardSize: boardSize, // Re-confirm the current board size
+                                boardSize: boardSize, 
                                 lastMoveTime: firebase.database.ServerValue.TIMESTAMP 
                             });
-                            // No need for a confirmation dialog, just reset
-                        }, 3000); 
-                    }
+                        }
+                    }, 3000); // 3 seconds delay to see the winning highlight
                 } 
             }); 
         } 
         
         function handleOnlineMove(index) { 
             if (!db) return;
-            stopTimer(); // Stop timer immediately on move
+            stopTimer(); 
             
             board[index] = localPlayer; 
             const result = checkWinner(board, false); 
             const nextPlayer = localPlayer === 'X' ? 'O' : 'X'; 
             
-            // NOTE: drawBoard() is called by syncGame after the Firebase update
-            db.ref('games/' + roomId).update({ 
+            let updateData = { 
                 board: board, 
-                currentPlayer: result.winner || result.winner === 'Draw' ? localPlayer : nextPlayer, 
-                gameActive: result.winner || result.winner === 'Draw' ? false : true,
+                currentPlayer: nextPlayer, 
+                gameActive: true,
                 lastMoveTime: firebase.database.ServerValue.TIMESTAMP 
-            }); 
+            };
+
+            // *** FIX: Update scores and set gameActive: false immediately on the winning move ***
+            if (result.winner || result.winner === 'Draw') {
+                updateData.gameActive = false;
+                updateData.currentPlayer = localPlayer; // Keep winner as current player temporarily for sync status
+                
+                let newScores = snapshot.val().scores || { scoreX: 0, scoreO: 0, draws: 0 };
+                if (result.winner === 'X') newScores.scoreX++; 
+                else if (result.winner === 'O') newScores.scoreO++; 
+                else if (result.winner === 'Draw') newScores.draws++; 
+                updateData.scores = newScores;
+            }
+            
+            db.ref('games/' + roomId).update(updateData); 
         } 
 
         // ------------------------------------------------------------------------------------------------
@@ -906,7 +903,6 @@
          * The Minimax algorithm that recursively evaluates the board state (3x3 only).
          */
         function minimax(currentBoard, player) {
-            // CRITICAL FIX: Use checkWinner with updateGlobalState=false to prevent global state corruption.
             const result = checkWinner(currentBoard, false); 
             
             if (result.winner !== undefined && result.winner !== null) {
@@ -962,7 +958,7 @@
         function aiMove() { 
             if (!gameActive || currentPlayer !== 'O' || boardSize !== 3) return; 
             
-            stopTimer(); // Stop the timer while AI calculates
+            stopTimer(); 
             
             let empty = getEmptyIndices(board); 
             let move = -1; 
@@ -982,18 +978,16 @@
             if (move !== -1) { 
                 board[move] = 'O'; 
                 
-                const result = checkWinner(board, true); // Check winner and update global state
+                const result = checkWinner(board, true); 
                 
                 if (result.winner) {
-                    // Game Over
                     updateLocalScore(result.winner);
-                    drawBoard(); // REDRAW with winning highlight
+                    drawBoard(); 
                     setTimeout(resetGame, 2000);
                 } else {
-                    // Turn Switch
                     currentPlayer = 'X'; 
                     drawBoard(); 
-                    resetLocalTimer(); // Start timer for X again
+                    resetLocalTimer(); 
                 }
             } 
         } 
@@ -1011,6 +1005,17 @@
             
             const localBtn = document.querySelector('#controls button:nth-child(1)');
             startGame('local', null, localBtn);
+
+            // Re-run setBoardSize on window resize to maintain responsiveness
+            window.addEventListener('resize', () => {
+                if (mode !== 'online' || !roomId) {
+                    // Only update visual size if not online or not in a room (to prevent unnecessary Firebase writes)
+                    setBoardSize(boardSize, document.querySelector(`#boardSizeControls button[id="size${boardSize}x${boardSize}Btn"]`) || null);
+                } else {
+                    // When online, update visuals without writing to Firebase
+                    setBoardSize(boardSize, null);
+                }
+            });
         });
         
     </script>

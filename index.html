@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" style="height: 100vh; overflow: hidden;">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,7 +36,7 @@
             --color-cell-hover: #cfcfcf;
         }
 
-        /* --- CRITICAL LAYOUT & FONT --- */
+        /* --- CRITICAL LAYOUT & FONT: GRID OVERHAUL --- */
         html, body {
             /* CRITICAL FIX 1: Use the JS-calculated variable for reliable mobile height */
             height: calc(var(--vh, 1vh) * 100); 
@@ -47,13 +47,20 @@
             background: var(--color-dark-bg);
             color: var(--color-text-light); 
             text-align: center; 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            
+            /* CRITICAL CHANGE: Use GRID to define the main content area */
+            display: grid;
+            /* Define 3 rows: Header (auto), Main Content (1fr), Footer (auto) */
+            grid-template-rows: auto 1fr auto; 
+            grid-template-areas: 
+                "header"
+                "main"
+                "footer";
+            align-items: stretch; /* Stretch content vertically */
             user-select: none;
             transition: background 0.3s, color 0.3s; 
         } 
-
+        
         h1, h2, h3 { 
             font-weight: 900;
             color: var(--color-primary-accent); 
@@ -63,20 +70,22 @@
         h1 { font-size: 2.5rem; }
         
         .screen {
+            /* IMPORTANT: Use Grid Area and remove absolute positioning */
+            position: relative; 
+            grid-area: main; 
             width: 100%;
             height: 100%;
             max-width: 600px;
-            position: absolute;
-            top: 0;
             left: 50%;
             transform: translateX(-50%);
             display: none; 
-            padding: 20px;
+            padding: 0 20px; 
             box-sizing: border-box;
             background: var(--color-dark-bg); 
             flex-direction: column;
             animation: fadeIn 0.3s ease-in-out;
             z-index: 100; 
+            overflow-y: auto; /* Allow scrolling for non-game screens */
         }
         
         .screen.active { 
@@ -88,28 +97,34 @@
             to { opacity: 1; }
         }
 
-        /* --- CRITICAL RENDER FIX: FLEXBOX LAYOUT --- */
-        .screen-content {
-            padding: 0; 
-            box-sizing: border-box;
+        /* --- CRITICAL RENDER FIX: GAME SCREEN CONTENT --- */
+        #game-screen .screen-content {
+            /* Flexbox inside the 1fr Grid cell to manage vertical centering */
             display: flex;
             flex-direction: column;
             align-items: center; 
-            height: 100%; 
-            overflow-y: hidden; 
-            position: relative; 
+            height: 100%; /* Take 100% of the grid-area space */
+            padding-top: 10px; 
+            padding-bottom: 10px;
+            box-sizing: border-box;
+            overflow-y: hidden; /* Prevent scrolling inside the content */
         }
-        
-        #player-names-display, #game-info {
+
+        /* Elements inside the game screen that are *not* the board container */
+        #game-info-header,
+        #player-names-display, 
+        #game-info,
+        #scoreboard,
+        #post-game-actions {
             width: 95%;
             max-width: 450px;
             margin-bottom: 5px; 
         }
-
+        
         #game-board-container {
-            /* CRITICAL FIX 2: Takes up all remaining vertical space */
+            /* CRITICAL FIX 2: Takes up all remaining vertical space within screen-content */
             flex-grow: 1; 
-            min-height: 0; 
+            min-height: 0; /* Prevents overflow when content is too large */
             width: 100%; 
             max-width: 450px; 
             display: flex; 
@@ -117,18 +132,10 @@
             align-items: center; 
             overflow: hidden; 
             min-width: min(100%, 450px);
+            /* Added margin to help spacing from other elements */
+            margin: 5px 0; 
         }
 
-        #scoreboard {
-            width: 95%;
-            max-width: 450px;
-            margin-bottom: 60px; /* Space above the footer */
-        }
-        
-        #post-game-actions {
-             margin-top: 10px;
-        }
-        
         /* --- GAME BOARD (DYNAMIC GRID DEFINITION) --- */
         #game { 
             display: grid; 
@@ -142,7 +149,7 @@
             /* CRITICAL FIX 3: JS sets width, aspect-ratio enforces square */
             width: var(--dynamic-board-size); 
             aspect-ratio: 1 / 1; 
-            max-width: 450px; /* Ensure board never exceeds this physical size */
+            max-width: 450px; 
         } 
         
         .cell { 
@@ -173,12 +180,12 @@
 
         /* Footer */
         footer { 
-            position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
+            /* CRITICAL CHANGE: Uses Grid Area, not fixed positioning */
+            grid-area: footer;
+            position: relative; 
             width: 100%;
             max-width: 600px;
+            margin: 0 auto; 
             padding: 5px 0;
             font-size: 0.7rem; 
             color: #4a4d53; 
@@ -393,7 +400,7 @@
     <button id="backBtn" onclick="handleBack(true)" class="fixed-control">← Back</button>
     <button id="chatOpenBtn" onclick="toggleChatOverlay()" class="fixed-control">💬 Chat</button>
 
-    <div id="splash-screen" class="screen">
+    <div id="splash-screen" class="screen active" style="grid-area: main;">
         <div class="screen-content">
             <p>Seb Creations Presents</p>
             <h1>XOX ARENA</h1>
@@ -405,7 +412,7 @@
         </div>
     </div>
 
-    <div id="home-screen" class="screen">
+    <div id="home-screen" class="screen" style="grid-area: main;">
         <div class="screen-content">
             <h1>XOX ARENA</h1>
             <p id="tagline" style="margin-top: 0;">“Think Fast. Strike Smart. Rule the Grid.”</p>
@@ -418,12 +425,13 @@
             
             <div id="main-controls" style="display: flex; flex-direction: column; align-items: center; margin-top: 50px;">
                 <button onclick="showScreen('local-config')" class="neon-button">LOCAL 2-PLAYER</button>
-                <button onclick="showScreen('ai-config')" class="neon-button">PLAY AI</button> <button onclick="showScreen('online-lobby')" class="neon-button">ONLINE MULTIPLAYER</button>
+                <button onclick="showScreen('ai-config')" class="neon-button">PLAY AI</button> 
+                <button onclick="showScreen('online-lobby')" class="neon-button">ONLINE MULTIPLAYER</button>
             </div>
         </div>
     </div>
     
-    <div id="ai-config" class="screen">
+    <div id="ai-config" class="screen" style="grid-area: main;">
         <div class="screen-content">
             <h1 style="padding-top: 20px;">PLAY AI SETUP</h1>
             <p>AI is restricted to 3x3 for balanced play.</p>
@@ -447,7 +455,7 @@
             <button style="margin-top: 30px;" onclick="showScreen('game-screen', true)" class="active">START AI GAME</button>
         </div>
     </div>
-    <div id="local-config" class="screen">
+    <div id="local-config" class="screen" style="grid-area: main;">
         <div class="screen-content">
             <h1 style="padding-top: 20px;">LOCAL 2-PLAYER SETUP</h1>
             
@@ -472,7 +480,7 @@
         </div>
     </div>
 
-    <div id="online-lobby" class="screen">
+    <div id="online-lobby" class="screen" style="grid-area: main;">
         <div class="screen-content">
             <h1 style="padding-top: 20px;">ONLINE LOBBY</h1>
             
@@ -500,20 +508,21 @@
         </div>
     </div>
 
-    <div id="game-screen" class="screen">
+    <div id="game-screen" class="screen" style="grid-area: main;">
         <div class="screen-content"> 
-            <h2 id="gameTitle" style="padding-top: 20px;">Local Game</h2> 
-            
-            <div id="player-names-display">
-                <p id="nameX" style="color: var(--color-primary-accent); display: inline-block; margin-right: 20px;">X: Player X</p>
-                <p id="nameO" style="color: var(--color-secondary-accent); display: inline-block;">O: Player O</p>
-            </div>
-            
-            <div id="game-info">
-                <p id="gameStatus">Game in progress...</p>
-                <p id="timer">Turn Time: <span id="timerValue">30s</span></p> 
-            </div>
-            
+            <header id="game-info-header" style="width: 100%; max-width: 450px; margin-top: 10px;">
+                <h2 id="gameTitle">Local Game</h2> 
+                
+                <div id="player-names-display">
+                    <p id="nameX" style="color: var(--color-primary-accent); display: inline-block; margin-right: 20px;">X: Player X</p>
+                    <p id="nameO" style="color: var(--color-secondary-accent); display: inline-block;">O: Player O</p>
+                </div>
+                
+                <div id="game-info">
+                    <p id="gameStatus">Game in progress...</p>
+                    <p id="timer">Turn Time: <span id="timerValue">30s</span></p> 
+                </div>
+            </header>
             <div id="game-board-container">
                 <div id="game">
                 </div>
@@ -559,7 +568,7 @@
         </div>
     </div>
     
-    <footer>
+    <footer style="grid-area: footer;">
         <p>Developed by <b>Seb-Creations</b> | XOX Arena</p>
     </footer>
 
@@ -683,6 +692,9 @@
         const nameScoreO = document.getElementById('nameScoreO');
         // Board Container
         const gameBoardContainer = document.getElementById('game-board-container');
+        // New Header/Scoreboard elements for calculation
+        const gameInfoHeader = document.getElementById('game-info-header');
+        const scoreboardDiv = document.getElementById('scoreboard');
         
         // --- THEME & MUTE HANDLERS (Unchanged) ---
         
@@ -982,35 +994,47 @@
         }
         
         function calculateAndSetBoardSize() {
-            if (currentScreen !== 'game-screen' || !gameBoardContainer) return;
+            if (currentScreen !== 'game-screen' || !gameBoardContainer || !gameInfoHeader || !scoreboardDiv) return;
             
-            // 1. Get the actual available space within the container
-            const containerRect = gameBoardContainer.getBoundingClientRect();
+            const contentContainer = document.querySelector('#game-screen .screen-content');
+            if (!contentContainer) return;
+
+            // 1. Get the boundary of the total available space for screen-content (1fr area)
+            const contentRect = contentContainer.getBoundingClientRect();
             
-            // We take the minimum of the space available in the container to ensure a square fit.
-            const availableSize = Math.min(containerRect.width, containerRect.height);
+            // 2. Calculate the total vertical space consumed by elements *above and below* the board container
+            const headerHeight = gameInfoHeader.offsetHeight || 0;
+            const scoreboardHeight = scoreboardDiv.offsetHeight || 0;
+            const actionsHeight = postGameActionsDiv.offsetHeight || 0;
             
-            // 2. Adjust for board padding (10px on each side = 20px total)
+            // Total vertical padding/margin within screen-content
+            // Note: If you add top/bottom padding to .screen-content, add it here. Currently it's 10px top/bottom.
+            const verticalPadding = 20; 
+
+            // Available height for the board container (1fr area)
+            const availableVerticalSpace = contentRect.height - headerHeight - scoreboardHeight - actionsHeight - verticalPadding;
+
+            // 3. Determine the size based on the minimum of available width, available height, and max-width (450px)
+            const availableSize = Math.min(contentRect.width, availableVerticalSpace, 450);
+            
+            // 4. Adjust for board padding (10px on each side = 20px total)
             const boardPadding = 20; 
             let finalBoardSize = availableSize - boardPadding; 
             
-            // 3. Apply final size constraints
-            // Ensure the board doesn't exceed its physical max-width (450px defined in CSS)
+            // 5. Apply final size constraints (safe check)
             finalBoardSize = Math.min(finalBoardSize, 450); 
             
-            // 4. Set the CSS variables (We only set the width, aspect-ratio handles height)
+            // 6. Set the CSS variables
             gameDiv.style.setProperty('--dynamic-board-size', `${finalBoardSize}px`);
 
-            // 5. Calculate cell font size based on the final board size
+            // 7. Calculate cell font size
             const size = boardSize;
-            // The effective content width of the grid inside the board (subtract the gap space)
             const gapSpace = 8 * (size - 1);
             const cellSideLength = (finalBoardSize - gapSpace) / size;
             const fontSize = cellSideLength / 2.5; 
             
             gameDiv.style.setProperty('--font-size', `${fontSize}px`);
             
-            // Re-draw the board to apply new cell sizes
             drawBoard();
         }
 
@@ -1532,7 +1556,7 @@
             if (currentScreen === 'game-screen') {
                  // Delay the recalculation to let the browser settle
                  setTimeout(() => {
-                    calculateAndSetBoardSize(); // CRITICAL: Only call the specific sizing function
+                    calculateAndSetBoardSize(); 
                  }, 100);
             }
         });

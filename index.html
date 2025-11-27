@@ -32,10 +32,9 @@
             --color-cell-hover: #cfcfcf;
         }
 
-        /* --- CRITICAL LAYOUT & FONT (VH HACK REMOVED) --- */
+        /* --- CRITICAL LAYOUT & FONT --- */
         html, body {
             height: 100%;
-            /* height: calc(var(--vh, 1vh) * 100); <--- REMOVED */
             margin: 0; 
             padding: 0; 
             overflow: hidden; 
@@ -62,7 +61,6 @@
         .screen {
             width: 100%;
             height: 100%;
-            /* height: calc(var(--vh, 1vh) * 100); <--- REMOVED */
             max-width: 600px;
             position: absolute;
             top: 0;
@@ -93,18 +91,17 @@
             display: flex;
             flex-direction: column;
             align-items: center; 
-            height: 100%; /* Important: Take full height */
+            height: 100%; 
             overflow-y: auto; 
-            /* NEW: Establish positioning context for absolute children */
             position: relative; 
         }
         
         /* NEW CORRECTED POSITIONING FOR GAME SCREEN ELEMENTS */
         
-        /* Specific positioning for game status, names, and scoreboard */
-        #game-info {
+        /* Player names and game status are now grouped */
+        #game-info,
+        #player-names-display {
             position: absolute;
-            top: 100px; /* NEW: Moved down to clear the title/Back button */
             width: 95%;
             max-width: 450px;
             left: 50%;
@@ -113,19 +110,17 @@
         }
 
         #player-names-display {
-            position: absolute;
-            top: 150px; /* NEW: Moved down to clear the game status */
-            width: 95%;
-            max-width: 450px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
+            top: 100px; /* Starts high, below the main title */
+        }
+
+        #game-info {
+            top: 150px; /* Starts below the player names */
         }
         
         #game-board-container {
             /* NEW: Absolute positioning with tighter constraints */
             position: absolute; 
-            top: 200px;    /* Moved down (past Game Status and Player Names) */
+            top: 250px;    /* CRITICAL CHANGE: Moved down to clear BOTH Player Names (100px) and Game Info (150px) */
             bottom: 150px; /* Moved up (past Scoreboard) */
             left: 50%;
             transform: translateX(-50%);
@@ -139,11 +134,16 @@
             justify-content: center;
             align-items: center; 
             overflow: hidden; 
+            
+            /* CRITICAL: Force the inner board to fill the available space */
+            #game {
+                height: 100%; 
+            }
         }
 
         #scoreboard {
             position: absolute;
-            bottom: 60px; /* This position is correct (above the footer) */
+            bottom: 60px; /* Positioned above the footer */
             width: 95%;
             max-width: 450px;
             left: 50%;

@@ -818,23 +818,24 @@
             if (screenId === 'game-screen' && isGameStart) {
                 if (mode === 'local' || mode === 'ai') {
                     
-                    // Set local player names
+                    // Set player names and title immediately
                     playerNames['X'] = document.getElementById(mode === 'local' ? 'playerNameX' : 'playerNameAIAI').value || 'Player X';
                     playerNames['O'] = document.getElementById(mode === 'local' ? 'playerNameO' : 'AI Bot').value || 'Player O';
                     
                     if(mode === 'ai') playerNames['O'] = 'AI Bot (' + aiDifficulty.charAt(0).toUpperCase() + ')';
                     
                     updatePlayerNamesDisplay();
-
                     gameTitle.textContent = mode === 'local' ? 'LOCAL FRIEND GAME' : `AI GAME (${aiDifficulty.toUpperCase()})`;
                     
-                    // --- CRITICAL FIXES ADDED HERE TO ENSURE BOARD RENDERING ---
-                    // 1. Ensure board size CSS is calculated for the current view
-                    setBoardSize(boardSize, null, true, currentScreen); 
-                    // 2. Reset the game and draw the board (also starts the timer)
-                    resetGame();
-                    // -----------------------------------------------------------
-
+                    // --- STRONGER CRITICAL FIX WITH DELAY ---
+                    // Delay the board sizing and reset to ensure the browser has finished
+                    // rendering the new 'game-screen' dimensions.
+                    setTimeout(() => {
+                        setBoardSize(boardSize, null, true, currentScreen); 
+                        resetGame();
+                    }, 50); // Small 50ms delay
+                    // ----------------------------------------
+                    
                 } else if (mode === 'online' && localPlayer) {
                     gameTitle.textContent = `ONLINE GAME (${playerNames[localPlayer]})`;
                     localScoreboardDiv.style.display = 'none';

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>XOX ARENA</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght400;700;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
@@ -450,12 +450,11 @@
         <p>Developed by <b>Seb-Creations</b> | XOX Arena</p>
     </footer>
 
-    <audio id="menuMusic" loop src="https://assets.mixkit.co/music/preview/mixkit-sci-fi-game-intro-2426.mp3" preload="auto"></audio> 
-    <audio id="gameMusic" loop src="https://assets.mixkit.co/music/preview/mixkit-cyber-attack-1335.mp3" preload="auto"></audio> 
-    
-    <audio id="clickSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-button-click-1944.mp3" preload="auto"></audio>
-    <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-complete-2051.mp3" preload="auto"></audio>
-    <audio id="drawSound" src="https://assets.mixkit.co/sfx/preview/mixkit-small-bell-bell-251.mp3" preload="auto"></audio>
+    <audio id="menuMusic" loop src="https://cdns.seb-cdn.com/audio/ambient_menu_music.mp3" preload="auto"></audio> 
+    <audio id="gameMusic" loop src="https://cdns.seb-cdn.com/audio/game_loop_music.mp3" preload="auto"></audio> 
+    <audio id="clickSound" src="https://cdns.seb-cdn.com/audio/click_sfx.mp3" preload="auto"></audio>
+    <audio id="winSound" src="https://cdns.seb-cdn.com/audio/win_sfx.mp3" preload="auto"></audio>
+    <audio id="drawSound" src="https://cdns.seb-cdn.com/audio/draw_sfx.mp3" preload="auto"></audio>
 
 
     <script>
@@ -551,6 +550,7 @@
 
         /**
          * Sets the initial volume and state for all audio elements.
+         * CRITICAL FIX: Forces loading of short sound effects.
          */
         function initializeAudioState() {
             const allAudio = [menuMusic, gameMusic, clickSound, winSound, drawSound];
@@ -558,6 +558,8 @@
                 if (audioElem) {
                     audioElem.volume = 0.4; // Set a default volume
                     audioElem.muted = isMuted;
+                    // CRITICAL ADDITION: Force the browser to load the data now
+                    audioElem.load(); 
                 }
             });
         }
@@ -796,7 +798,7 @@
         function setBoardSize(size, button, skipReset = false, location = 'local-config') {
             const previousSize = boardSize;
             boardSize = size;
-            const newBoardLength = size * size;
+            const newBoardLength = size * boardSize;
             
             if (!skipReset && previousSize !== size) {
                 board = Array(newBoardLength).fill('');

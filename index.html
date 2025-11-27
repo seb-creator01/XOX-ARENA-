@@ -18,6 +18,9 @@
             --color-text-dark: #0f0f0f;
             --color-cell-bg: #242629;
             --color-cell-hover: #393e46;
+            
+            /* CSS Variable set by JS for reliable mobile viewport height */
+            --vh: 1vh;
         }
 
         /* --- LIGHT THEME --- */
@@ -34,7 +37,8 @@
 
         /* --- CRITICAL LAYOUT & FONT --- */
         html, body {
-            height: 100%;
+            /* CRITICAL FIX: Use the JS-calculated variable for reliable mobile height */
+            height: calc(var(--vh, 1vh) * 100); 
             margin: 0; 
             padding: 0; 
             overflow: hidden; 
@@ -265,11 +269,13 @@
             display: grid; 
             grid-template-columns: repeat(var(--board-size), 1fr);
             
-            /* CRITICAL FIX 2: Use min() to ensure the board is a square that fits the smallest dimension 
-               The 350px accounts for the approximate height of header, status, scoreboard, and footer. */
-            width: min(100%, 100vh - 350px); 
+            /* CRITICAL FIX 2: Use the JS-calculated variable to set a square size based on remaining height */
+            /* 300px is the approximate total height of the header, info, scoreboard, and footer combined */
+            width: min(100%, calc(var(--vh, 1vh) * 100 - 300px)); 
             max-width: 450px;
-            max-height: 450px; 
+            
+            /* Setting height to auto ensures the aspect-ratio logic takes over */
+            height: auto; 
             
             grid-gap: 8px; 
             padding: 10px;
@@ -338,7 +344,8 @@
             right: 0;
             width: 80%;
             max-width: 350px;
-            height: 100%;
+            /* CRITICAL FIX: Use the JS-calculated variable for reliable height */
+            height: calc(var(--vh, 1vh) * 100); 
             background: rgba(15, 15, 15, 0.95); 
             box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
             transform: translateX(100%); 
@@ -573,6 +580,12 @@
 
     <script>
         
+        // --- NEW CRITICAL FIX: Fix Mobile Viewport Height (vh) Issues ---
+        function setViewportHeight() {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+
         // --- NEW SPLASH SCREEN HANDLER ---
         const LOADING_TIME_MS = 1000; 
 
@@ -936,7 +949,6 @@
             // The board container width is constrained to 450px max width.
             const containerWidth = Math.min(window.innerWidth * 0.95, 450); 
             // Calculated cell size based on container width and board size, compensating for grid gap (8px).
-            // This calculation is now more robust as the container size is guaranteed.
             cellSize = (containerWidth / size) - (size === 3 ? 5 : 4); 
             fontSize = cellSize / 2.5; 
             
@@ -1476,9 +1488,11 @@
             document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊'; 
         } 
         
-        // --- JAVASCRIPT FIX FOR MOBILE VH SCROLLING (ENTIRELY REMOVED) ---
         
         document.addEventListener('DOMContentLoaded', () => {
+             // Initial height calculation
+             setViewportHeight();
+             
              setBoardSize(3, document.getElementById('size3x3Btn'), false, 'local-config');
              startGame('local', null, document.getElementById('localPlayBtn'));
              
@@ -1489,6 +1503,9 @@
         
         // CRITICAL: Force a redraw on resize or orientation change to recalculate cell size
         window.addEventListener('resize', () => {
+            // Recalculate the vh variable first
+            setViewportHeight();
+            
             if (currentScreen === 'game-screen') {
                  // Delay the recalculation to let the browser settle
                  setTimeout(() => {
@@ -1496,9 +1513,6 @@
                  }, 100);
             }
         });
-        
-        // Final sanity check: set board size on load.
-        setBoardSize(3, null, true, 'splash-screen');
         
     </script>
 </body>

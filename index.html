@@ -86,28 +86,30 @@
             flex-direction: column;
         }
 
-        #splash-screen p {
-            font-size: 1.2rem;
-            margin: 5px;
-            /* ENHANCEMENT: Make text before play button more visible */
-            color: var(--color-text-light); /* Changed from #4a4d53 to light text */
-            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); /* Slight glow */
-        }
-        
         #splash-screen h1 {
             font-size: 4rem;
             margin-bottom: 5px;
             letter-spacing: 5px;
+            /* Enhanced H1 glow */
+            text-shadow: 0 0 10px var(--color-primary-accent), 0 0 20px rgba(0, 191, 255, 0.8);
         }
 
+        /* CRITICAL VISIBILITY UPDATE */
+        #splash-screen p {
+            font-size: 1.2rem;
+            margin: 5px;
+            color: white !important; /* Force white color */
+            text-shadow: 0 0 5px white, 0 0 10px white; /* Strong white glow/shadow */
+            font-weight: 700;
+        }
         
-        /* --- TAGLINE VISIBILITY ENHANCEMENT --- */
+        /* CRITICAL TAGLINE VISIBILITY UPDATE */
         #tagline {
             font-size: 1.5rem; 
             font-weight: 900; 
             font-style: italic;
-            color: var(--color-secondary-accent);
-            text-shadow: 0 0 10px rgba(57, 255, 20, 1); 
+            color: #ff00ff !important; /* Change to BRIGHT PINK for maximum contrast */
+            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff; /* Strong pink neon glow */
             margin-top: 20px;
             margin-bottom: 30px; 
         }
@@ -350,7 +352,7 @@
     <button id="chatOpenBtn" onclick="toggleChatOverlay()" class="fixed-control">💬 Chat</button>
 
     <div id="splash-screen" class="screen">
-        <p style="color: white; text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);">Seb Creations Presents</p>
+        <p>Seb Creations Presents</p>
         <h1>XOX ARENA</h1>
         <p id="tagline">“Think Fast. Strike Smart. Rule the Grid.”</p>
         
@@ -473,7 +475,7 @@
     <script>
         
         // --- NEW SPLASH SCREEN HANDLER ---
-        const LOADING_TIME_MS = 1000; // Reduced loading time for testing/better UX
+        const LOADING_TIME_MS = 1000; 
 
         // Fetching elements early
         const splashScreen = document.getElementById('splash-screen');
@@ -520,11 +522,10 @@
         let roomId = null; 
         let currentScreen = 'splash-screen'; 
         
-        // --- Timer State Variables (UPDATED) ---
+        // --- Timer State Variables ---
         let timerInterval = null; 
         let localMoveStartTime = Date.now();
         const TIME_LIMIT_SECONDS = 30; // Max time is 30 seconds
-        const TIMER_START_SECONDS = 30; // Timer starts counting down from 30
         let autoResetTimeout = null;
         
         // --- DOM Elements (Updated to include new elements) ---
@@ -536,11 +537,11 @@
         // MUSIC ELEMENTS
         const menuMusic = document.getElementById('menuMusic'); 
         const gameMusic = document.getElementById('gameMusic'); 
-        // SOUND EFFECT ELEMENTS (NEW)
+        // SOUND EFFECT ELEMENTS
         const clickSound = document.getElementById('clickSound');
         const winSound = document.getElementById('winSound');
         const drawSound = document.getElementById('drawSound');
-        const tickingSound = document.getElementById('tickingSound'); // NEW
+        const tickingSound = document.getElementById('tickingSound'); 
         // END MUSIC/SOUND ELEMENTS
         const roomIdInput = document.getElementById('roomIdInput'); 
         const gameStatusP = document.getElementById('gameStatus'); 
@@ -564,13 +565,15 @@
 
         /**
          * Ensures music state is correctly managed based on the active screen.
-         * @param {string} screenId - The ID of the screen being activated.
+         * @param {HTMLAudioElement} audioElem - The sound element to play.
+         * @param {number} volume - Volume (0.0 to 1.0).
          */
         function playMusic(audioElem, volume = 0.3) {
             if (!isMuted && audioElem && audioElem.paused) {
                 audioElem.volume = volume;
                 audioElem.currentTime = 0; 
-                audioElem.play().catch(e => console.log("Audio play prevented:", e));
+                // CRITICAL: Must catch the Promise rejection for autoplay blocking
+                audioElem.play().catch(e => console.warn("Music play prevented (browser policy):", e));
             }
         }
         
@@ -583,7 +586,7 @@
              if (audioElem && !isMuted) {
                 audioElem.volume = volume;
                 audioElem.currentTime = 0; // Rewind to start for instant playback
-                audioElem.play().catch(e => console.log("Sound effect play prevented:", e));
+                audioElem.play().catch(e => console.warn("Sound effect play prevented (browser policy):", e));
             }
         }
 
@@ -615,8 +618,7 @@
             if (playButton) playButton.style.display = 'none';
             if (loadingSpinner) loadingSpinner.style.display = 'block';
             
-            // Initial music start (menuMusic will start) - THIS IS THE CRITICAL FIX FOR AUDIO
-            // Audio.play() must be called from a user-initiated event handler.
+            // CRITICAL AUDIO FIX: This user interaction allows the music to start
             playMusic(menuMusic, 0.3);
 
             // 2. Start the loading sequence
@@ -626,7 +628,6 @@
                 
                 // 4. Force the splash screen off the stack
                 if (splashScreen) {
-                    // Use a slight delay to allow home-screen to fully render/transition in
                     setTimeout(() => {
                         splashScreen.classList.remove('active');
                         splashScreen.style.display = 'none'; 
@@ -721,8 +722,14 @@
             mode = 'local'; 
         }
         
-        // --- Timer Logic (UPDATED) ---
+        // --- Timer Logic (Finalized for Countdown from 30 with Ticking Sound) ---
         function handleTimeLimitReached() {
+            // Stop the ticking sound when time runs out
+            if (tickingSound) {
+                tickingSound.pause();
+                tickingSound.currentTime = 0;
+            }
+
             if (!gameActive) { stopTimer(); return; }
             const nextPlayer = currentPlayer === 'X' ? 'O' : 'X';
             if (mode === 'online') {
@@ -747,14 +754,17 @@
             timerDisplay.style.display = 'block'; 
             timerDisplay.classList.remove('timer-warning', 'timer-critical'); // Reset styles
             
-            // Start ticking sound
-            playSoundEffect(tickingSound, 0.4); 
-            tickingSound.loop = true;
+            // CRITICAL AUDIO: Start ticking sound loop
+            if (!isMuted && tickingSound) {
+                tickingSound.volume = 0.4; // Set a slightly lower volume for background tick
+                tickingSound.loop = true;
+                tickingSound.play().catch(e => console.warn("Ticking sound blocked:", e));
+            }
 
             timerInterval = setInterval(() => {
-                // Calculate elapsed time (upwards)
+                // Calculate elapsed time (upwards from 0)
                 const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
-                // Calculate time left (downwards from TIME_LIMIT_SECONDS)
+                // Calculate time left (DOWNWARDS from TIME_LIMIT_SECONDS, i.e., 30)
                 const timeLeft = TIME_LIMIT_SECONDS - elapsedSec; 
 
                 if (timeLeft <= 0) {
@@ -785,7 +795,7 @@
             timerValueSpan.textContent = `${TIME_LIMIT_SECONDS}s`; // Reset to 30
             timerDisplay.classList.remove('timer-warning', 'timer-critical');
             
-            // Stop ticking sound
+            // CRITICAL AUDIO: Stop ticking sound
             if (tickingSound) {
                 tickingSound.pause();
                 tickingSound.currentTime = 0;
@@ -800,7 +810,7 @@
             }
         }
         
-        // --- Core Game Logic Functions (Unchanged) ---
+        // --- Core Game Logic Functions (Rest Unchanged) ---
         function getWinLength(size) {
             return size;
         }
@@ -1332,12 +1342,12 @@
             if (clickSound) clickSound.muted = isMuted; 
             if (winSound) winSound.muted = isMuted;     
             if (drawSound) drawSound.muted = isMuted;   
-            if (tickingSound) tickingSound.muted = isMuted; // NEW
+            if (tickingSound) tickingSound.muted = isMuted; 
             
             // If unmuting, ensure the correct track starts playing
             if (!isMuted) {
                 manageMusic(currentScreen);
-                // The timer sound is managed by startTimer/stopTimer
+                // The timer sound is managed by startTimer/stopTimer, ensure it's re-checked next time startTimer is called
             }
             
             document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊'; 

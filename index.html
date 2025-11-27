@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>XOX ARENA</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
@@ -86,16 +86,20 @@
             flex-direction: column;
         }
 
+        #splash-screen p {
+            font-size: 1.2rem;
+            margin: 5px;
+            /* ENHANCEMENT: Make text before play button more visible */
+            color: var(--color-text-light); /* Changed from #4a4d53 to light text */
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); /* Slight glow */
+        }
+        
         #splash-screen h1 {
             font-size: 4rem;
             margin-bottom: 5px;
             letter-spacing: 5px;
         }
-        #splash-screen p {
-            color: #4a4d53;
-            font-size: 1.2rem;
-            margin: 5px;
-        }
+
         
         /* --- TAGLINE VISIBILITY ENHANCEMENT --- */
         #tagline {
@@ -141,7 +145,17 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        /* --- TIMER WARNING STYLES --- */
+        .timer-warning {
+            color: #ff8e3c; /* Orange for warning */
+            text-shadow: 0 0 5px #ff8e3c;
+        }
 
+        .timer-critical {
+            color: #f05a7f; /* Red for critical time */
+            text-shadow: 0 0 8px #f05a7f;
+        }
         /* --- BUTTONS & INPUTS --- */
         button { 
             padding: 14px 30px; 
@@ -336,7 +350,7 @@
     <button id="chatOpenBtn" onclick="toggleChatOverlay()" class="fixed-control">💬 Chat</button>
 
     <div id="splash-screen" class="screen">
-        <p>Seb Creations Presents</p>
+        <p style="color: white; text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);">Seb Creations Presents</p>
         <h1>XOX ARENA</h1>
         <p id="tagline">“Think Fast. Strike Smart. Rule the Grid.”</p>
         
@@ -410,7 +424,7 @@
             
             <div id="game-info">
                 <p id="gameStatus">Game in progress...</p>
-                <p id="timer" style="display: none;">Turn Time: <span id="timerValue">0s</span></p>
+                <p id="timer" style="display: none;">Turn Time: <span id="timerValue">30s</span></p>
                 
                 <div id="game-board-container">
                     <div id="game">
@@ -450,10 +464,16 @@
         <p>Developed by <b>Seb-Creations</b> | XOX Arena</p>
     </footer>
 
+    <audio id="menuMusic" loop src="https://assets.mixkit.co/music/preview/mixkit-sci-fi-game-intro-2426.mp3" preload="auto"></audio> 
+    <audio id="gameMusic" loop src="https://assets.mixkit.co/music/preview/mixkit-cyber-attack-1335.mp3" preload="auto"></audio> 
+    <audio id="clickSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-button-click-1944.mp3" preload="auto"></audio>
+    <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-complete-2051.mp3" preload="auto"></audio>
+    <audio id="drawSound" src="https://assets.mixkit.co/sfx/preview/mixkit-small-bell-bell-251.mp3" preload="auto"></audio>
+    <audio id="tickingSound" loop src="https://assets.mixkit.co/sfx/preview/mixkit-tick-tock-clock-1033.mp3" preload="auto"></audio>
     <script>
         
         // --- NEW SPLASH SCREEN HANDLER ---
-        const LOADING_TIME_MS = 5000; // 5 seconds
+        const LOADING_TIME_MS = 1000; // Reduced loading time for testing/better UX
 
         // Fetching elements early
         const splashScreen = document.getElementById('splash-screen');
@@ -500,28 +520,28 @@
         let roomId = null; 
         let currentScreen = 'splash-screen'; 
         
-        // --- Timer State Variables ---
+        // --- Timer State Variables (UPDATED) ---
         let timerInterval = null; 
         let localMoveStartTime = Date.now();
-        const TIME_LIMIT_SECONDS = 30;
-        const TIMER_START_SECONDS = 5;
+        const TIME_LIMIT_SECONDS = 30; // Max time is 30 seconds
+        const TIMER_START_SECONDS = 30; // Timer starts counting down from 30
         let autoResetTimeout = null;
         
-        // --- Audio Variables (UPDATED for dynamic creation) ---
-        let menuMusic = null; 
-        let gameMusic = null; 
-        
-        // Sound Effect URLs (Used for dynamic creation)
-        const CLICK_SFX_URL = "https://cdns.seb-cdn.com/audio/click_sfx.mp3";
-        const WIN_SFX_URL = "https://cdns.seb-cdn.com/audio/win_sfx.mp3";
-        const DRAW_SFX_URL = "https://cdns.seb-cdn.com/audio/draw_sfx.mp3";
-        
-        // --- DOM Elements (Unchanged) ---
+        // --- DOM Elements (Updated to include new elements) ---
         const gameDiv = document.getElementById('game'); 
         const aiControlsDiv = document.getElementById('aiControls'); 
         const scoreX = document.getElementById('scoreX'); 
         const scoreO = document.getElementById('scoreO'); 
         const scoreDraws = document.getElementById('scoreDraws'); 
+        // MUSIC ELEMENTS
+        const menuMusic = document.getElementById('menuMusic'); 
+        const gameMusic = document.getElementById('gameMusic'); 
+        // SOUND EFFECT ELEMENTS (NEW)
+        const clickSound = document.getElementById('clickSound');
+        const winSound = document.getElementById('winSound');
+        const drawSound = document.getElementById('drawSound');
+        const tickingSound = document.getElementById('tickingSound'); // NEW
+        // END MUSIC/SOUND ELEMENTS
         const roomIdInput = document.getElementById('roomIdInput'); 
         const gameStatusP = document.getElementById('gameStatus'); 
         const onlineScoreboardDiv = document.getElementById('online-scoreboard'); 
@@ -543,60 +563,28 @@
 
 
         /**
-         * Initializes the music elements using the Audio constructor.
-         * This runs once on script load/user interaction.
-         */
-        function initializeAudioState() {
-            // Create persistent background music elements
-            menuMusic = new Audio("https://cdns.seb-cdn.com/audio/ambient_menu_music.mp3");
-            menuMusic.loop = true;
-            menuMusic.volume = 0.3;
-            menuMusic.muted = isMuted;
-
-            gameMusic = new Audio("https://cdns.seb-cdn.com/audio/game_loop_music.mp3");
-            gameMusic.loop = true;
-            gameMusic.volume = 0.4;
-            gameMusic.muted = isMuted;
-            
-            // NOTE: SFX elements are NOT created here, but in playSoundEffect.
-        }
-
-        /**
          * Ensures music state is correctly managed based on the active screen.
          * @param {string} screenId - The ID of the screen being activated.
          */
         function playMusic(audioElem, volume = 0.3) {
-            if (!audioElem) return; 
-            
-            if (!isMuted && audioElem.paused) {
+            if (!isMuted && audioElem && audioElem.paused) {
                 audioElem.volume = volume;
                 audioElem.currentTime = 0; 
-                // CRITICAL: .play() needs to be called within a user gesture handler.
-                audioElem.play().catch(e => console.warn("Audio play prevented/blocked (playMusic):", e));
+                audioElem.play().catch(e => console.log("Audio play prevented:", e));
             }
         }
         
         /**
-         * Plays a sound effect instantly by creating a new Audio object.
-         * This aggressively bypasses most browser restrictions.
-         * @param {string} url - The URL of the sound effect.
+         * Plays a sound effect instantly, checking the mute state.
+         * @param {HTMLAudioElement} audioElem - The sound effect element.
          * @param {number} volume - Volume (0.0 to 1.0).
          */
-        function playSoundEffect(url, volume = 0.8) {
-             if (isMuted) return;
-
-             // CRITICAL FIX: Create a brand new Audio element every time
-             const sfx = new Audio(url);
-             sfx.volume = volume;
-
-             // Attempt to play, and remove the element from memory after it finishes
-             sfx.play().then(() => {
-                sfx.onended = () => sfx.remove(); // Clean up memory
-             }).catch(e => {
-                 console.warn("SFX Play Blocked (Dynamic Creation):", e);
-                 // Fallback: If blocked, try to remove immediately
-                 sfx.remove();
-             });
+        function playSoundEffect(audioElem, volume = 0.8) {
+             if (audioElem && !isMuted) {
+                audioElem.volume = volume;
+                audioElem.currentTime = 0; // Rewind to start for instant playback
+                audioElem.play().catch(e => console.log("Sound effect play prevented:", e));
+            }
         }
 
         function stopMusic(audioElem) {
@@ -627,8 +615,8 @@
             if (playButton) playButton.style.display = 'none';
             if (loadingSpinner) loadingSpinner.style.display = 'block';
             
-            // CRITICAL STEP: Directly call play on the menu music here. This is the 
-            // only guaranteed user gesture, and it enables the entire AudioContext.
+            // Initial music start (menuMusic will start) - THIS IS THE CRITICAL FIX FOR AUDIO
+            // Audio.play() must be called from a user-initiated event handler.
             playMusic(menuMusic, 0.3);
 
             // 2. Start the loading sequence
@@ -733,7 +721,7 @@
             mode = 'local'; 
         }
         
-        // --- Timer Logic (Unchanged) ---
+        // --- Timer Logic (UPDATED) ---
         function handleTimeLimitReached() {
             if (!gameActive) { stopTimer(); return; }
             const nextPlayer = currentPlayer === 'X' ? 'O' : 'X';
@@ -756,25 +744,36 @@
 
         function startTimer(startTime) {
             stopTimer(); 
-            timerDisplay.style.color = '#ff8e3c';
+            timerDisplay.style.display = 'block'; 
+            timerDisplay.classList.remove('timer-warning', 'timer-critical'); // Reset styles
+            
+            // Start ticking sound
+            playSoundEffect(tickingSound, 0.4); 
+            tickingSound.loop = true;
+
             timerInterval = setInterval(() => {
+                // Calculate elapsed time (upwards)
                 const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
-                if (elapsedSec >= TIME_LIMIT_SECONDS) {
+                // Calculate time left (downwards from TIME_LIMIT_SECONDS)
+                const timeLeft = TIME_LIMIT_SECONDS - elapsedSec; 
+
+                if (timeLeft <= 0) {
                     stopTimer();
                     handleTimeLimitReached();
                     return; 
                 }
-                if (elapsedSec >= TIMER_START_SECONDS) {
-                    timerDisplay.style.display = 'block';
-                    timerValueSpan.textContent = `${elapsedSec}s`;
-                    timerValueSpan.classList.remove('timer-warning', 'timer-critical');
-                    if (elapsedSec >= 25) {
-                        timerDisplay.style.color = '#f05a7f'; 
-                    } else if (elapsedSec >= 15) {
-                        timerDisplay.style.color = '#ff8e3c'; 
-                    }
+                
+                timerValueSpan.textContent = `${timeLeft}s`;
+                
+                // Update styling based on time left
+                if (timeLeft <= 5) {
+                    timerDisplay.classList.add('timer-critical'); 
+                    timerDisplay.classList.remove('timer-warning');
+                } else if (timeLeft <= 15) {
+                    timerDisplay.classList.add('timer-warning'); 
+                    timerDisplay.classList.remove('timer-critical');
                 } else {
-                    timerDisplay.style.display = 'none';
+                    timerDisplay.classList.remove('timer-warning', 'timer-critical');
                 }
             }, 1000);
         }
@@ -783,8 +782,14 @@
             if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
             if (autoResetTimeout) { clearTimeout(autoResetTimeout); autoResetTimeout = null; }
             timerDisplay.style.display = 'none';
-            timerValueSpan.textContent = '0s';
-            timerDisplay.style.color = '#ff8e3c'; 
+            timerValueSpan.textContent = `${TIME_LIMIT_SECONDS}s`; // Reset to 30
+            timerDisplay.classList.remove('timer-warning', 'timer-critical');
+            
+            // Stop ticking sound
+            if (tickingSound) {
+                tickingSound.pause();
+                tickingSound.currentTime = 0;
+            }
         }
 
         function resetLocalTimer() {
@@ -803,7 +808,7 @@
         function setBoardSize(size, button, skipReset = false, location = 'local-config') {
             const previousSize = boardSize;
             boardSize = size;
-            const newBoardLength = size * boardSize;
+            const newBoardLength = size * size;
             
             if (!skipReset && previousSize !== size) {
                 board = Array(newBoardLength).fill('');
@@ -902,8 +907,8 @@
                         const result = checkWinner(board, false);
                         gameStatusP.textContent = `GAME OVER! ${result.winner === 'Draw' ? 'IT\'S A DRAW!' : `<strong>${result.winner}</strong> WINS!`}. Starting new round in 3 seconds...`; 
                         // Sound effect on online win/draw
-                        if(result.winner === 'Draw') playSoundEffect(DRAW_SFX_URL);
-                        else playSoundEffect(WIN_SFX_URL);
+                        if(result.winner === 'Draw') playSoundEffect(drawSound);
+                        else playSoundEffect(winSound);
                         stopTimer(); 
                     } else { 
                         const turnMessage = (currentPlayer === localPlayer) ? 'YOUR TURN!' : `${currentPlayer}'S TURN.`;
@@ -919,7 +924,7 @@
             if (!gameActive || board[index]) return; 
             
             // Play click sound on successful move
-            playSoundEffect(CLICK_SFX_URL); 
+            playSoundEffect(clickSound); 
 
             if (mode === 'online') { 
                 if (currentPlayer !== localPlayer) { 
@@ -934,8 +939,8 @@
                 if (result.winner) {
                     updateLocalScore(result.winner);
                     // Play win/draw sound
-                    if(result.winner === 'Draw') playSoundEffect(DRAW_SFX_URL);
-                    else playSoundEffect(WIN_SFX_URL);
+                    if(result.winner === 'Draw') playSoundEffect(drawSound);
+                    else playSoundEffect(winSound);
                     drawBoard();
                     setTimeout(resetGame, 2000);
                 } else {
@@ -1283,7 +1288,7 @@
             stopTimer(); 
             
             // Play a click sound for the AI move
-            playSoundEffect(CLICK_SFX_URL, 0.5); 
+            playSoundEffect(clickSound, 0.5); 
             
             let empty = getEmptyIndices(board); 
             let move = -1; 
@@ -1306,8 +1311,8 @@
                 if (result.winner) {
                     updateLocalScore(result.winner);
                     // Play win/draw sound
-                    if(result.winner === 'Draw') playSoundEffect(DRAW_SFX_URL);
-                    else playSoundEffect(WIN_SFX_URL);
+                    if(result.winner === 'Draw') playSoundEffect(drawSound);
+                    else playSoundEffect(winSound);
                     drawBoard(); 
                     setTimeout(resetGame, 2000);
                 } else {
@@ -1321,17 +1326,18 @@
         function toggleMute() { 
             isMuted = !isMuted; 
             
-            // Apply mute state to persistent music elements
-            if (menuMusic) menuMusic.muted = isMuted;
-            if (gameMusic) gameMusic.muted = isMuted;
+            // Apply mute state to all audio elements
+            if (menuMusic) menuMusic.muted = isMuted; 
+            if (gameMusic) gameMusic.muted = isMuted; 
+            if (clickSound) clickSound.muted = isMuted; 
+            if (winSound) winSound.muted = isMuted;     
+            if (drawSound) drawSound.muted = isMuted;   
+            if (tickingSound) tickingSound.muted = isMuted; // NEW
             
             // If unmuting, ensure the correct track starts playing
             if (!isMuted) {
                 manageMusic(currentScreen);
-            } else {
-                // Stop music immediately when muting
-                stopMusic(menuMusic);
-                stopMusic(gameMusic);
+                // The timer sound is managed by startTimer/stopTimer
             }
             
             document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊'; 
@@ -1362,9 +1368,6 @@
         });
         window.addEventListener('orientationchange', setAppHeight);
         setAppHeight(); 
-        
-        // CRITICAL INITIAL CALL: Initialize the persistent music elements
-        initializeAudioState(); 
         
     </script>
 </body>

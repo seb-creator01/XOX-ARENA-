@@ -1,250 +1,514 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark" data-accent="blue" style="height: 100vh; overflow: hidden;">
+<html lang="en" style="height: 100vh; overflow: hidden;">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>XOX ARENA</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        /* --- THEME COLORS (DEFAULT: DARK MODE, BLUE ACCENT) --- */
+        /* --- THEME COLORS (New: Dark Theme Default) --- */
         :root {
-            --color-bg-main: #0f0f0f;
+            --color-primary-accent: #00bfff; /* Electric Blue */
+            --color-secondary-accent: #39ff14; /* Neon Green */
+            --color-dark-bg: #0f0f0f;
             --color-panel-bg: #16161a;
             --color-text-light: #eeeeee;
-            --color-text-dark: #111111;
-            --color-primary-accent: #00bfff; /* X default */
-            --color-secondary-accent: #39ff14; /* O default */
+            --color-text-dark: #0f0f0f;
+            --color-cell-bg: #242629;
+            --color-cell-hover: #393e46;
         }
-        
-        [data-accent="red"] { --color-primary-accent: #ff4500; --color-secondary-accent: #f0f0f0; }
-        [data-accent="green"] { --color-primary-accent: #39ff14; --color-secondary-accent: #00bfff; }
-        [data-theme="light"] {
-            --color-bg-main: #f0f0f0;
+
+        /* --- LIGHT THEME --- */
+        .light-theme {
+            --color-primary-accent: #1e88e5; /* Royal Blue */
+            --color-secondary-accent: #ffb300; /* Amber */
+            --color-dark-bg: #f0f0f0;
             --color-panel-bg: #ffffff;
-            --color-text-light: #111111;
-            --color-text-dark: #eeeeee;
+            --color-text-light: #333333;
+            --color-text-dark: #ffffff;
+            --color-cell-bg: #e0e0e0;
+            --color-cell-hover: #cfcfcf;
         }
 
         /* --- CRITICAL LAYOUT & FONT --- */
         html, body {
             height: 100%;
             height: calc(var(--vh, 1vh) * 100); 
-            margin: 0; padding: 0; overflow: hidden; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
             font-family: 'Roboto', 'Segoe UI', sans-serif; 
-            background: var(--color-bg-main); color: var(--color-text-light); 
-            text-align: center; display: flex; flex-direction: column;
-            align-items: center; user-select: none;
-            transition: background 0.3s, color 0.3s;
+            background: var(--color-dark-bg);
+            color: var(--color-text-light); 
+            text-align: center; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
+            transition: background 0.3s, color 0.3s; /* Smooth theme transition */
         } 
 
+        /* --- UI AESTHETICS --- */
         h1, h2, h3 { 
-            font-weight: 900; color: var(--color-primary-accent); 
-            text-shadow: 0 0 8px var(--color-primary-accent); 
+            font-weight: 900;
+            color: var(--color-primary-accent); 
+            text-shadow: 0 0 8px rgba(0, 191, 255, 0.5); /* Blue Neon Glow */
             margin-top: 10px;
-        }
+        } 
+        h1 { font-size: 2.5rem; }
         
         .screen {
-            width: 100%; height: 100%; height: calc(var(--vh, 1vh) * 100); 
-            max-width: 600px; position: absolute; top: 0; left: 50%;
-            transform: translateX(-50%); display: none; padding: 20px;
-            box-sizing: border-box; background: var(--color-bg-main); 
-            flex-direction: column; animation: fadeIn 0.3s ease-in-out;
-            z-index: 100; overflow-y: auto; /* Allow scrolling for content longer than screen */
+            width: 100%;
+            height: 100%;
+            height: calc(var(--vh, 1vh) * 100); 
+            max-width: 600px;
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none; /* Hidden by default */
+            padding: 20px;
+            box-sizing: border-box;
+            background: var(--color-dark-bg); 
+            flex-direction: column;
+            animation: fadeIn 0.3s ease-in-out;
+            z-index: 100; /* Standard screen layer */
         }
         
-        .screen.active { display: flex; }
+        .screen.active { 
+            display: flex; /* Shown when active */
+        }
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .screen-content { flex-grow: 1; padding-top: 40px; padding-bottom: 50px; }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .screen-content {
+            flex-grow: 1; 
+            overflow-y: auto; 
+            padding-top: 40px; 
+            padding-bottom: 50px; 
+        }
+
+        /* --- SPLASH SCREEN SPECIFIC --- */
+        #splash-screen {
+            z-index: 200; /* Highest z-index to ensure initial visibility */
+            display: flex; /* Overriding 'display: none' for initial view */
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        #splash-screen h1 {
+            font-size: 4rem;
+            margin-bottom: 5px;
+            letter-spacing: 5px;
+        }
+        #splash-screen p {
+            color: var(--color-text-light); /* Improved visibility */
+            font-size: 1.2rem;
+            margin: 5px;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        }
+        
+        /* --- TAGLINE VISIBILITY ENHANCEMENT --- */
+        #tagline {
+            font-size: 1.5rem; 
+            font-weight: 900; 
+            font-style: italic;
+            color: var(--color-secondary-accent);
+            text-shadow: 0 0 10px rgba(57, 255, 20, 1); 
+            margin-top: 20px;
+            margin-bottom: 30px; 
+        }
+        
+        /* Play Button Style */
+        #play-button {
+            background: var(--color-primary-accent); 
+            color: var(--color-text-dark); /* Ensure dark text on bright button */
+            font-size: 1.5rem;
+            padding: 15px 50px;
+            border-radius: 50px;
+            box-shadow: 0 0 15px rgba(0, 191, 255, 0.8), 0 6px 10px rgba(0, 0, 0, 0.5);
+            transition: transform 0.1s, opacity 0.3s;
+        }
+        #play-button:hover {
+            background: #4de6ff; 
+        }
+        #play-button:active {
+            transform: scale(0.95);
+        }
+
+        /* Loading Spinner Style */
+        #loading-spinner {
+            border: 8px solid var(--color-panel-bg); 
+            border-top: 8px solid var(--color-secondary-accent); 
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1.5s linear infinite;
+            display: none; 
+            margin-top: 30px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
         /* --- BUTTONS & INPUTS --- */
-        .fixed-control {
-            padding: 8px 15px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            background: var(--color-panel-bg);
-            border: 1px solid var(--color-primary-accent);
-        }
         button { 
-            padding: 14px 30px; margin: 8px; border: none; 
-            background: var(--color-panel-bg); color: var(--color-text-light); 
-            font-weight: 700; border-radius: 10px; 
+            padding: 14px 30px; 
+            margin: 8px; 
+            border: none; 
+            background: var(--color-cell-bg); /* Use theme variable */
+            color: var(--color-text-light); 
+            font-weight: 700; 
+            border-radius: 10px; 
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
-            font-size: 1rem; letter-spacing: 0.5px; cursor: pointer;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            cursor: pointer;
             transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.1s; 
         } 
+        button:hover { background: var(--color-cell-hover); }
         
+        /* Neon Style for Main Menu Buttons */
         .neon-button {
+            background: var(--color-panel-bg); 
             border: 2px solid var(--color-secondary-accent);
             color: var(--color-secondary-accent);
-            box-shadow: 0 0 15px var(--color-secondary-accent), inset 0 0 8px var(--color-secondary-accent); 
-            margin: 12px 8px;
+            box-shadow: 0 0 15px rgba(57, 255, 20, 0.6), inset 0 0 8px rgba(57, 255, 20, 0.4); 
+            transition: all 0.3s ease-in-out;
+            margin: 12px 8px; /* Slightly more vertical margin */
         }
         .neon-button:hover {
-            background: color-mix(in srgb, var(--color-secondary-accent) 15%, transparent); 
-            color: var(--color-text-light); transform: translateY(-3px);
-            box-shadow: 0 0 20px var(--color-secondary-accent), 0 6px 12px rgba(0, 0, 0, 0.6);
+            background: rgba(57, 255, 20, 0.1); 
+            color: var(--color-text-light);
+            transform: translateY(-3px);
+            box-shadow: 0 0 20px rgba(57, 255, 20, 1), 0 6px 12px rgba(0, 0, 0, 0.6);
         }
         
-        button.active, button.selected { 
+        button.active { 
             background: var(--color-secondary-accent); 
-            color: var(--color-text-dark); 
-            box-shadow: 0 0 10px var(--color-secondary-accent), 0 4px 8px rgba(0, 0, 0, 0.5); 
+            color: var(--color-text-dark); /* Ensure dark text on bright button */
+            box-shadow: 0 0 10px rgba(57, 255, 20, 0.8), 0 4px 8px rgba(0, 0, 0, 0.5); 
             transform: translateY(-2px); 
         } 
-        
-        /* --- GAME BOARD (CRITICAL FOR VISIBILITY) --- */
-        #game-board-container {
-            width: 100%; display: flex; justify-content: center;
-            align-items: center; position: relative; padding: 20px 0;
-        }
 
-        #game {
-            display: grid; gap: 5px; width: 90vw; max-width: 400px; 
+        input[type="text"] {
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            background: var(--color-cell-bg); /* Use theme variable */
+            color: var(--color-text-light);
+            font-size: 1rem;
+            text-align: center;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+            transition: background 0.3s, color 0.3s;
+        }
+        
+        /* Fixed top controls (Themed) */
+        .fixed-control {
+            position: fixed;
+            top: 10px;
+            z-index: 1000;
+            font-size: 1rem;
+            padding: 8px 15px;
+            margin: 5px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+            background: var(--color-panel-bg);
+            color: var(--color-primary-accent);
+            transition: background 0.3s, color 0.3s;
+        }
+        #muteBtn { right: 10px; }
+        #backBtn { left: 10px; display: none; }
+        #chatOpenBtn { right: 100px; display: none; } 
+
+        /* --- GAME BOARD --- */
+        #game { 
+            grid-gap: 8px; 
+            padding: 10px;
+            background: var(--color-panel-bg); 
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.3);
+            display: grid;
             grid-template-columns: repeat(var(--board-size), 1fr);
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-            background: #202020; position: relative;
-        }
+            width: 95%; 
+            max-width: 450px;
+            margin: 20px auto 0 auto;
+        } 
+        .cell { 
+            aspect-ratio: 1 / 1; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: var(--font-size, 3rem); 
+            font-weight: 900;
+            cursor: pointer;
+            background: var(--color-cell-bg); /* Themed background */
+            color: var(--color-text-light); 
+            border-radius: 5px;
+            transition: background 0.2s, color 0.2s;
+        } 
+        .cell:hover { background: var(--color-cell-hover); }
+        .cell.winner { 
+            background: var(--color-secondary-accent); 
+            box-shadow: 0 0 15px rgba(57, 255, 20, 0.8);
+            color: var(--color-text-dark); /* Ensure contrast */
+            animation: pulseWin 0.5s infinite alternate;
+        } 
         
-        .cell {
-            background: var(--color-panel-bg); display: flex;
-            justify-content: center; align-items: center;
-            font-size: var(--font-size); font-weight: 900;
-            cursor: pointer; aspect-ratio: 1 / 1; 
-            border-radius: 5px; transition: background 0.1s;
+        @keyframes pulseWin {
+            from { box-shadow: 0 0 15px var(--color-secondary-accent); }
+            to { box-shadow: 0 0 25px var(--color-secondary-accent); }
         }
-        
-        .cell:empty:hover { background: rgba(255, 255, 255, 0.05); }
 
-        .cell[data-player="X"] { color: var(--color-primary-accent); text-shadow: 0 0 10px var(--color-primary-accent); }
-        .cell[data-player="O"] { color: var(--color-secondary-accent); text-shadow: 0 0 10px var(--color-secondary-accent); }
-        .cell.winner { background: rgba(255, 255, 255, 0.1); }
-
-        /* --- WINNING LINE & CHAT OVERLAY (Simplified) --- */
-        .strike-line {
-            position: absolute; background-color: var(--color-primary-accent); 
-            box-shadow: 0 0 15px var(--color-primary-accent); z-index: 50; 
-            border-radius: 5px; transition: width 0.3s ease-out, height 0.3s ease-out;
-            pointer-events: none;
+        /* Game Status/Timer Enhancements */
+        #gameStatus {
+            font-size: 1.2rem;
+            font-weight: 700;
+            min-height: 24px;
+        }
+        #timer { 
+            margin-top: 5px;
+            font-weight: 700;
         }
         
+        /* Scoreboard Panel */
+        .scoreboard-panel {
+            background: var(--color-panel-bg);
+            border: 1px solid var(--color-primary-accent);
+            border-radius: 10px;
+            padding: 10px;
+            margin: 15px 5px;
+            display: inline-block;
+            box-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
+            min-width: 150px;
+        }
+        .scoreboard-panel h2 {
+             font-size: 1.1rem;
+             margin-top: 0;
+        }
+        .scoreboard-panel p {
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+        
+        /* --- CHAT OVERLAY --- */
         #chat-overlay {
-            position: fixed; top: 0; right: 0; width: 80%; max-width: 350px;
-            height: 100%; background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(5px);
-            z-index: 150; transform: translateX(100%);
-            transition: transform 0.3s ease-out; padding: 10px; box-sizing: border-box;
-            display: flex; flex-direction: column; border-left: 2px solid var(--color-primary-accent);
-            touch-action: pan-y;
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 80%;
+            max-width: 350px;
+            height: calc(var(--vh, 1vh) * 100);
+            background: rgba(15, 15, 15, 0.95); 
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+            transform: translateX(100%); 
+            transition: transform 0.3s ease-in-out;
+            z-index: 1002; 
+            display: flex;
+            flex-direction: column;
+            padding-top: 50px; 
+            box-sizing: border-box;
         }
-        #chat-overlay.visible { transform: translateX(0); }
-        #chat-messages { flex-grow: 1; overflow-y: auto; padding: 10px; text-align: left;}
-        #chat-input-area { display: flex; padding-top: 10px; border-top: 1px solid #333; }
-        #chatInput { flex-grow: 1; padding: 10px; background: #222; color: white; border: none; border-radius: 5px; margin-right: 5px; }
 
-        /* --- TOAST POPUP & CONFIG STYLES (Simplified) --- */
-        #toast-container { position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 300; pointer-events: none; }
-        .toast { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(5px); color: var(--color-text-light); padding: 10px 20px; margin-top: 10px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.3s ease-in-out; font-weight: 700; }
-        .toast.show { opacity: 1; }
+        #chat-overlay.visible {
+            transform: translateX(0); 
+        }
         
-        #player-config-controls input {
-            padding: 10px; margin: 10px; border: 1px solid #333;
-            border-radius: 5px; background: var(--color-panel-bg);
-            color: var(--color-text-light); text-align: center;
-            font-size: 1.2rem; width: 50px;
+        #chat-overlay h2 {
+            margin-bottom: 5px;
+            padding: 0 20px;
+            flex-shrink: 0;
+            color: var(--color-secondary-accent);
+        }
+        #chat-messages {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding: 10px 20px;
+        }
+        #chat-messages p {
+            margin: 5px 0;
+            font-size: 0.95rem;
+        }
+        .chat-message-x { color: var(--color-primary-accent); } 
+        .chat-message-o { color: var(--color-secondary-accent); } 
+        .chat-message-system { color: #aaaaaa; font-style: italic; }
+
+        #chat-input-area {
+            display: flex;
+            flex-direction: column; /* Stack input and reactions */
+            padding: 10px 20px 20px 20px;
+            background: rgba(0, 0, 0, 0.7);
+            flex-shrink: 0;
+        }
+        
+        /* Reaction Emojis Style */
+        #reaction-emojis {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 10px;
+        }
+        #reaction-emojis button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            padding: 5px;
+            margin: 0 5px;
+            box-shadow: none;
+            transition: transform 0.1s;
+        }
+        #reaction-emojis button:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Chat text input and send button */
+        #text-input-group {
+            display: flex;
+        }
+        #chat-input-area input {
+            flex-grow: 1;
+            border-radius: 25px 0 0 25px;
+            padding: 12px 18px;
+            text-align: left;
+            margin: 0;
+        }
+        #chat-input-area button.send-btn {
+            padding: 10px 15px;
+            background: var(--color-primary-accent);
+            color: var(--color-text-dark);
+            border-radius: 0 25px 25px 0;
+            margin: 0;
+            box-shadow: none;
+            flex-shrink: 0;
+        }
+
+        /* Footer */
+        footer { 
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 600px;
+            padding: 5px 0;
+            font-size: 0.7rem; 
+            color: #4a4d53; 
+            background: var(--color-panel-bg);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+            z-index: 1001; 
+        } 
+        footer b { color: #94a1b2; } 
+        
+        /* Specific Z-Index for Home Screen to ensure it sits above the standard screen index (100) */
+        #home-screen {
+            z-index: 101; 
+        }
+        
+        /* Online Lobby Loading Status */
+        #online-lobby-status {
+            margin-top: 20px;
+            min-height: 50px;
+        }
+        #online-lobby-status p {
+            font-style: italic;
+            color: var(--color-primary-accent);
+        }
+        
+        /* Post Game Buttons */
+        #post-game-actions {
+            margin-top: 20px;
         }
     </style>
 </head>
-<body>
+<body id="app-body">
     
-    <button id="muteBtn" onclick="toggleMute()" class="fixed-control" style="top: 10px; left: 10px; z-index: 101;">🔊</button>
-    <button id="backBtn" onclick="handleBack()" class="fixed-control" style="top: 10px; left: 80px; z-index: 101; display: none;">← Back</button>
-    <button id="settingsBtn" onclick="showScreen('settings-screen')" class="fixed-control" style="top: 10px; right: 80px; z-index: 101; display: none;">⚙️</button>
-    <button id="chatOpenBtn" onclick="toggleChatOverlay()" class="fixed-control" style="top: 10px; right: 10px; z-index: 101; display: none;">💬 Chat</button>
+    <button id="muteBtn" onclick="toggleMute()" class="fixed-control">🔊</button>
+    <button id="backBtn" onclick="handleBack(true)" class="fixed-control">← Back</button>
+    <button id="chatOpenBtn" onclick="toggleChatOverlay()" class="fixed-control">💬 Chat</button>
 
-    <div id="toast-container"></div>
-
-    <div id="splash-screen" class="screen active">
+    <div id="splash-screen" class="screen">
         <p>Seb Creations Presents</p>
         <h1>XOX ARENA</h1>
         <p id="tagline">“Think Fast. Strike Smart. Rule the Grid.”</p>
-        <button id="play-button" onclick="handlePlayClick()" class="neon-button">START ARENA</button>
-        <div id="loading-spinner" style="display: none; margin-top: 20px;"><p>Loading Assets...</p></div>
+        
+        <button id="play-button" onclick="handlePlayClick()">PLAY GAME</button>
+        
+        <div id="loading-spinner"></div>
     </div>
 
     <div id="home-screen" class="screen">
         <div class="screen-content">
             <h1>XOX ARENA</h1>
+            <p id="tagline" style="margin-top: 0;">“Think Fast. Strike Smart. Rule the Grid.”</p>
+            
+            <div id="theme-controls" style="margin-bottom: 30px;">
+                <h3>Theme</h3>
+                <button onclick="setTheme('dark')" class="active">Dark (Neon)</button>
+                <button onclick="setTheme('light')">Light</button>
+            </div>
             
             <div id="main-controls" style="display: flex; flex-direction: column; align-items: center; margin-top: 50px;">
-                <button onclick="showScreen('local-config')" class="neon-button">🤝 LOCAL FRIEND (2P)</button>
-                <button onclick="showScreen('ai-config')" class="neon-button">🤖 PLAY AGAINST AI</button>
-                <button onclick="showScreen('online-lobby')" class="neon-button">🌐 ONLINE MULTIPLAYER</button>
+                <button onclick="showScreen('local-config')" class="neon-button">LOCAL 2-PLAYER</button>
+                <button onclick="showScreen('ai-config')" class="neon-button">PLAY AI</button> <button onclick="showScreen('online-lobby')" class="neon-button">ONLINE MULTIPLAYER</button>
             </div>
-        </div>
-    </div>
-    
-    <div id="settings-screen" class="screen">
-        <div class="screen-content">
-            <h1>SETTINGS</h1>
-            
-            <div id="ui-theme-controls" class="theme-control-group">
-                <h3>UI Theme Mode</h3>
-                <button class="theme-select-button theme-dark selected" onclick="setTheme('dark', this)">Dark</button>
-                <button class="theme-select-button theme-light" onclick="setTheme('light', this)">Light</button>
-            </div>
-
-            <div id="accent-theme-controls" class="theme-control-group">
-                <h3>X/O Accent Color</h3>
-                <button class="theme-select-button accent-blue selected" onclick="setAccent('blue', this)">Blue Neon</button>
-                <button class="theme-select-button accent-red" onclick="setAccent('red', this)">Red/White</button>
-                <button class="theme-select-button accent-green" onclick="setAccent('green', this)">Green</button>
-            </div>
-            
-            <div id="player-config-controls" class="theme-control-group">
-                <h3>Customize Icons (X/O)</h3>
-                <label for="iconX">Player X Icon:</label>
-                <input type="text" id="iconX" value="X" maxlength="1" onchange="updateIconDisplay()">
-                
-                <label for="iconO">Player O Icon:</label>
-                <input type="text" id="iconO" value="O" maxlength="1" onchange="updateIconDisplay()">
-            </div>
-        </div>
-    </div>
-
-    <div id="local-config" class="screen">
-        <div class="screen-content">
-            <h1>LOCAL VS FRIEND SETUP</h1>
-            <p>Two players, one device.</p>
-            
-            <div id="localBoardSizeControls">
-                <h3>Select Board Size</h3>
-                <button id="localSize3x3Btn" onclick="setBoardSize(3, this, 'local-config')">3x3 (3-in-a-Row)</button>
-                <button onclick="setBoardSize(4, this, 'local-config')">4x4 (4-in-a-Row)</button>
-                <button onclick="setBoardSize(5, this, 'local-config')">5x5 (5-in-a-Row)</button>
-            </div>
-
-            <button style="margin-top: 30px;" onclick="startGame('local', null); showScreen('game-screen');" class="active">START LOCAL GAME</button>
         </div>
     </div>
     
     <div id="ai-config" class="screen">
         <div class="screen-content">
-            <h1>PLAY AGAINST AI (3x3 ONLY)</h1>
-            <p>Challenging the computer on a standard 3x3 board.</p>
+            <h1>PLAY AI SETUP</h1>
+            <p>AI is restricted to 3x3 for balanced play.</p>
             
-            <div id="aiDifficultyControls" style="margin-top: 30px;">
-                <h3>Select Difficulty</h3>
-                <button id="aiEasyBtn" onclick="selectAIDifficulty('easy', this)">Easy AI</button>
-                <button id="aiNormalBtn" onclick="selectAIDifficulty('normal', this)">Normal AI</button>
-                <button id="aiHardBtn" onclick="selectAIDifficulty('hard', this)">Hard AI</button>
+            <div id="aiBoardSizeControls">
+                <h3>Select Board Size</h3>
+                <button id="aiSize3x3Btn" onclick="setBoardSize(3, this, false, 'ai-config')" class="active">3x3 (3-in-a-Row)</button>
+                <button disabled>4x4 (N/A)</button>
+                <button disabled>5x5 (N/A)</button>
             </div>
             
-            <button style="margin-top: 30px;" onclick="startGame('ai', aiDifficulty); showScreen('game-screen');" class="active">START AI GAME</button>
+             <input type="text" id="playerNameAIAI" placeholder="Your Name (X)" value="Player X" maxlength="15" style="margin: 20px auto; width: 80%;">
+
+            <div id="aiDifficultyControls" style="margin-top: 15px;">
+                <h3>Select AI Difficulty (O)</h3>
+                <button onclick="startGame('ai', 'easy', this)">Easy</button>
+                <button onclick="startGame('ai', 'normal', this)">Normal</button>
+                <button onclick="startGame('ai', 'hard', this)">Hard (Minimax)</button>
+            </div>
+            
+            <button style="margin-top: 30px;" onclick="showScreen('game-screen', true)" class="active">START AI GAME</button>
         </div>
     </div>
+    <div id="local-config" class="screen">
+        <div class="screen-content">
+            <h1>LOCAL 2-PLAYER SETUP</h1>
+            
+            <div id="boardSizeControls">
+                <h3>Select Board Size</h3>
+                <button id="size3x3Btn" onclick="setBoardSize(3, this)">3x3 (3-in-a-Row)</button>
+                <button onclick="setBoardSize(4, this)">4x4 (4-in-a-Row)</button>
+                <button onclick="setBoardSize(5, this)">5x5 (5-in-a-Row)</button>
+            </div>
+            
+            <div id="playerNames" style="display: flex; flex-direction: column; margin: 20px 0;">
+                <input type="text" id="playerNameX" placeholder="Player X Name" value="Player X" maxlength="15" style="margin-bottom: 10px;">
+                <input type="text" id="playerNameO" placeholder="Player O Name" value="Player O" maxlength="15">
+            </div>
 
+            <div id="modeControls">
+                <h3>Select Player Mode</h3>
+                <button id="localPlayBtn" onclick="startGame('local', null, this)" class="active">Play Friend (Same Device)</button>
+            </div>
+            
+            <button style="margin-top: 30px;" onclick="showScreen('game-screen', true)" class="active">START LOCAL GAME</button>
+        </div>
+    </div>
 
     <div id="online-lobby" class="screen">
         <div class="screen-content">
@@ -253,63 +517,60 @@
             <div id="online-lobby-controls">
                 <h3>Current Board Size: <span id="lobbyBoardSize">3x3</span></h3>
                 <div id="onlineBoardSizeControls">
-                    <button id="onlineSize3x3Btn" onclick="setBoardSize(3, this, 'online-lobby')">3x3</button>
-                    <button onclick="setBoardSize(4, this, 'online-lobby')">4x4</button>
-                    <button onclick="setBoardSize(5, this, 'online-lobby')">5x5</button>
+                    <button id="onlineSize3x3Btn" onclick="setBoardSize(3, this, false, 'online-lobby')">3x3</button>
+                    <button onclick="setBoardSize(4, this, false, 'online-lobby')">4x4</button>
+                    <button onclick="setBoardSize(5, this, false, 'online-lobby')">5x5</button>
                 </div>
                 
                 <input type="text" id="roomIdInput" placeholder="Enter Room ID" style="margin: 20px 0;">
+                <input type="text" id="onlinePlayerName" placeholder="Your Name (Max 15 chars)" value="Online Player" maxlength="15" style="margin-bottom: 20px;">
                 
-                <p id="onlineStatus">Enter an ID or create a game.</p>
+                <button onclick="createGame()">CREATE GAME (I am X)</button>
+                <button onclick="joinGame()">JOIN GAME (I am O)</button>
                 
-                <button onclick="createGame()">CREATE GAME (You are <span id="createIconX">X</span>)</button>
-                <button onclick="joinGame()">JOIN GAME (You are <span id="joinIconO">O</span>)</button>
-                
-                <div id="onlineWaitingScreen" style="margin-top: 20px; display: none;">
-                    <p>Waiting for opponent to join...</p>
+                <div id="online-lobby-status">
+                    <p id="onlineStatus">Enter an ID or create a game.</p>
+                    <div id="loading-spinner-online" style="margin-top: 10px;"></div>
                 </div>
 
-                <button onclick="showScreen('game-screen')" id="startGameOnlineBtn" style="display: none; margin-top: 20px;" class="active">GO TO GAME SCREEN</button>
+                <button onclick="showScreen('game-screen', true)" id="startGameOnlineBtn" style="display: none; margin-top: 20px;" class="active">GO TO GAME SCREEN</button>
             </div>
         </div>
     </div>
 
     <div id="game-screen" class="screen">
         <div class="screen-content"> 
-            <h2 id="gameTitle">Game Title</h2>
+            <h2 id="gameTitle">Local Game</h2>
+            
+            <div id="player-names-display">
+                <p id="nameX" style="color: var(--color-primary-accent); display: inline-block; margin-right: 20px;">X: Player X</p>
+                <p id="nameO" style="color: var(--color-secondary-accent); display: inline-block;">O: Player O</p>
+            </div>
             
             <div id="game-info">
                 <p id="gameStatus">Game in progress...</p>
-                <p id="timer" style="display: none;">Turn Time: <span id="timerValue">30s</span></p>
-                
-                <div id="game-board-container">
-                    <div id="game"></div>
+                <p id="timer">Turn Time: <span id="timerValue">30s</span></p> <div id="game-board-container">
+                    <div id="game">
+                        </div>
                 </div>
-
-                <div id="emoji-bar" style="margin-top: 20px; display: none; justify-content: center; align-items: center; flex-wrap: wrap;">
-                    <h3>Reactions</h3>
-                    <button onclick="sendEmoji('😎')">😎</button>
-                    <button onclick="sendEmoji('😂')">😂</button>
-                    <button onclick="sendEmoji('😡')">😡</button>
-                    <button onclick="sendEmoji('😴')">😴</button>
-                </div>
-                
-                <button id="rematchBtn" onclick="handleRematch()" style="display: none; margin-top: 20px;" class="neon-button">REMATCH</button>
-                
+            </div>
+            
+            <div id="post-game-actions" style="display: none;">
+                <button id="rematchBtn" class="neon-button" onclick="handleRematch()">REMATCH</button>
             </div>
             
             <div id="scoreboard">
                 <div id="local-scoreboard" class="scoreboard-panel">
                     <h2>LOCAL SCORE</h2>
-                    <p>Player <span id="playerIconX">X</span>: <span id="scoreX">0</span></p>
-                    <p>Player <span id="playerIconO">O</span>: <span id="scoreO">0</span></p>
+                    <p><span id="nameScoreX">Player X</span>: <span id="scoreX">0</span></p>
+                    <p><span id="nameScoreO">Player O</span>: <span id="scoreO">0</span></p>
                     <p>Draws: <span id="scoreDraws">0</span></p>
                 </div>
                 
                 <div id="online-scoreboard" class="scoreboard-panel" style="display: none;">
                     <h2>ONLINE SCORE (<span id="localPlayerDisplay">?</span>)</h2>
-                    <p>You (<span id="onlineIconLocal">?</span>): <span id="onlineScoreLocal">0</span></p>
-                    <p>Opponent (<span id="onlineIconOpponent">?</span>): <span id="onlineScoreOpponent">0</span></p>
+                    <p>You: <span id="onlineScoreLocal">0</span></p>
+                    <p>Opponent: <span id="onlineScoreOpponent">0</span></p>
                     <p>Draws: <span id="onlineScoreDraws">0</span></p>
                 </div>
             </div>
@@ -318,32 +579,57 @@
 
     <div id="chat-overlay">
         <h2>GAME CHAT</h2>
-        <div id="chat-messages"></div>
+        <div id="chat-messages">
+            </div>
         <div id="chat-input-area">
-            <input type="text" id="chatInput" placeholder="Type a message..." maxlength="100">
-            <button onclick="sendChatMessage()">SEND</button>
+            <div id="reaction-emojis">
+                 <button onclick="sendChatMessage('😎', true)">😎</button>
+                 <button onclick="sendChatMessage('😂', true)">😂</button>
+                 <button onclick="sendChatMessage('😡', true)">😡</button>
+                 <button onclick="sendChatMessage('😢', true)">😢</button>
+            </div>
+            <div id="text-input-group">
+                <input type="text" id="chatInput" placeholder="Type a message..." maxlength="100">
+                <button class="send-btn" onclick="sendChatMessage()">SEND</button>
+            </div>
         </div>
     </div>
     
-    <footer><p>Developed by <b>Seb-Creations</b> | XOX Arena</p></footer>
+    <footer>
+        <p>Developed by <b>Seb-Creations</b> | XOX Arena</p>
+    </footer>
 
     <audio id="menuMusic" loop src="https://assets.mixkit.co/music/preview/mixkit-sci-fi-game-intro-2426.mp3" preload="auto"></audio> 
     <audio id="gameMusic" loop src="https://assets.mixkit.co/music/preview/mixkit-cyber-attack-1335.mp3" preload="auto"></audio> 
+    
     <audio id="clickSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-button-click-1944.mp3" preload="auto"></audio>
     <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-complete-2051.mp3" preload="auto"></audio>
     <audio id="drawSound" src="https://assets.mixkit.co/sfx/preview/mixkit-small-bell-bell-251.mp3" preload="auto"></audio>
 
+
     <script>
         
-        // --- CONSTANTS AND CONFIGURATION ---
-        const LOADING_TIME_MS = 1000; 
-        const TIME_LIMIT_SECONDS = 30; 
+        // --- NEW SPLASH SCREEN HANDLER ---
+        const LOADING_TIME_MS = 1000; // Reduced for testing/UX
+
+        // Fetching elements early
+        const appBody = document.getElementById('app-body');
+        const splashScreen = document.getElementById('splash-screen');
+        const playButton = document.getElementById('play-button');
+        const loadingSpinner = document.getElementById('loading-spinner');
         
-        // Firebase config (using public mock key - REPLACE FOR PRODUCTION)
+        // CRITICAL INITIAL STATE: Make sure splash screen is visible on load.
+        splashScreen.classList.add('active'); 
+        
+        // --- FIREBASE CONFIGURATION (Unchanged) --- 
         const firebaseConfig = { 
             apiKey: "AIzaSyAFUoT40IjaiqH2791QvyNUP6SakHarupY", 
             authDomain: "tic-tac-toe-9e69d.firebaseapp.com", 
             projectId: "tic-tac-toe-9e69d", 
+            storageBucket: "tic-tac-toe-9e69d.appspot.com", 
+            messagingSenderId: "279666476240", 
+            appId: "1:279666476240:web:106c4481fbda677424cad5", 
+            measurementId: "G-WQV8NJN397", 
             databaseURL: "https://tic-tac-toe-9e69d-default-rtdb.firebaseio.com" 
         }; 
         
@@ -356,6 +642,7 @@
                 db = firebase.database();
             } catch (e) {
                 console.error("Firebase initialization failed:", e);
+                console.warn("Online multiplayer mode will not work.");
             }
         }
         
@@ -366,78 +653,79 @@
         let isMuted = false; 
         let mode = 'local'; 
         let gameActive = true; 
-        let aiDifficulty = 'easy'; 
+        let aiDifficulty = 'hard'; // Default to hard for better UX
         let localPlayer = null; 
         let roomId = null; 
         let currentScreen = 'splash-screen'; 
-        let playerIconX = 'X'; 
-        let playerIconO = 'O'; 
         
+        // NEW: Player Names State
+        let playerNames = {
+            'X': 'Player X',
+            'O': 'Player O'
+        };
+        
+        // --- Timer State Variables ---
         let timerInterval = null; 
         let localMoveStartTime = Date.now();
+        const TIME_LIMIT_SECONDS = 30; // 30s countdown
+        const TIMER_START_SECONDS = 0; // Timer starts immediately
+        let autoResetTimeout = null;
         
-        // --- DOM Elements (Partial for brevity) ---
+        // --- DOM Elements ---
         const gameDiv = document.getElementById('game'); 
-        const gameStatusP = document.getElementById('gameStatus'); 
-        const timerDisplay = document.getElementById('timer'); 
+        const aiControlsDiv = document.getElementById('aiDifficultyControls'); 
         const scoreX = document.getElementById('scoreX'); 
         const scoreO = document.getElementById('scoreO'); 
         const scoreDraws = document.getElementById('scoreDraws'); 
-        const localScoreboardDiv = document.getElementById('local-scoreboard'); 
-        const onlineScoreboardDiv = document.getElementById('online-scoreboard'); 
-        const iconXInput = document.getElementById('iconX');
-        const iconOInput = document.getElementById('iconO');
-        const chatOverlay = document.getElementById('chat-overlay');
-        const rematchBtn = document.getElementById('rematchBtn');
+        // MUSIC ELEMENTS
         const menuMusic = document.getElementById('menuMusic'); 
         const gameMusic = document.getElementById('gameMusic'); 
+        // SOUND EFFECT ELEMENTS
         const clickSound = document.getElementById('clickSound');
         const winSound = document.getElementById('winSound');
         const drawSound = document.getElementById('drawSound');
-
-
-        // --- THEME & ACCENT LOGIC ---
-        function setTheme(themeName, button) {
-            document.documentElement.setAttribute('data-theme', themeName);
-            document.querySelectorAll('#ui-theme-controls .theme-select-button').forEach(btn => btn.classList.remove('selected'));
-            if (button) button.classList.add('selected');
+        // END MUSIC/SOUND ELEMENTS
+        const roomIdInput = document.getElementById('roomIdInput'); 
+        const gameStatusP = document.getElementById('gameStatus'); 
+        const onlineScoreboardDiv = document.getElementById('online-scoreboard'); 
+        const localScoreboardDiv = document.getElementById('local-scoreboard'); 
+        const localPlayerDisplay = document.getElementById('localPlayerDisplay'); 
+        const onlineScoreLocal = document.getElementById('onlineScoreLocal'); 
+        const onlineScoreOpponent = document.getElementById('onlineScoreOpponent'); 
+        const onlineScoreDraws = document.getElementById('onlineScoreDraws'); 
+        const chatMessages = document.getElementById('chat-messages'); 
+        const chatInput = document.getElementById('chatInput'); 
+        const timerDisplay = document.getElementById('timer'); 
+        const timerValueSpan = document.getElementById('timerValue'); 
+        const backBtn = document.getElementById('backBtn');
+        const chatOpenBtn = document.getElementById('chatOpenBtn');
+        const lobbyBoardSizeSpan = document.getElementById('lobbyBoardSize');
+        const startGameOnlineBtn = document.getElementById('startGameOnlineBtn');
+        const gameTitle = document.getElementById('gameTitle');
+        const chatOverlay = document.getElementById('chat-overlay');
+        const postGameActionsDiv = document.getElementById('post-game-actions');
+        const loadingSpinnerOnline = document.getElementById('loading-spinner-online');
+        
+        // Player Name DOM
+        const nameXDisplay = document.getElementById('nameX');
+        const nameODisplay = document.getElementById('nameO');
+        const nameScoreX = document.getElementById('nameScoreX');
+        const nameScoreO = document.getElementById('nameScoreO');
+        
+        // --- THEME & MUTE HANDLERS ---
+        
+        function setTheme(theme) {
+            if (theme === 'light') {
+                appBody.classList.add('light-theme');
+                document.querySelector('#theme-controls button:nth-child(2)').classList.add('active');
+                document.querySelector('#theme-controls button:nth-child(1)').classList.remove('active');
+            } else {
+                appBody.classList.remove('light-theme');
+                document.querySelector('#theme-controls button:nth-child(1)').classList.add('active');
+                document.querySelector('#theme-controls button:nth-child(2)').classList.remove('active');
+            }
         }
         
-        function setAccent(accentName, button) {
-            document.documentElement.setAttribute('data-accent', accentName);
-            document.querySelectorAll('#accent-theme-controls .theme-select-button').forEach(btn => btn.classList.remove('selected'));
-            if (button) button.classList.add('selected');
-        }
-        
-        function updateIconDisplay() {
-            playerIconX = (iconXInput.value.trim() || 'X').substring(0, 1);
-            playerIconO = (iconOInput.value.trim() || 'O').substring(0, 1);
-            
-            // Sync all display locations
-            document.getElementById('playerIconX').textContent = playerIconX;
-            document.getElementById('playerIconO').textContent = playerIconO;
-            document.getElementById('createIconX').textContent = playerIconX;
-            document.getElementById('joinIconO').textContent = playerIconO;
-            
-            if(currentScreen === 'game-screen') drawBoard();
-        }
-
-        // --- TOAST POPUP FUNCTION ---
-        function showToast(message, duration = 2000) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.textContent = message;
-            
-            container.appendChild(toast);
-            setTimeout(() => { toast.classList.add('show'); }, 10);
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, duration);
-        }
-
-        // --- MUSIC AND SOUNDS ---
         function playMusic(audioElem, volume = 0.3) {
             if (!isMuted && audioElem && audioElem.paused) {
                 audioElem.volume = volume;
@@ -445,124 +733,228 @@
                 audioElem.play().catch(e => console.log("Audio play prevented:", e));
             }
         }
+        
         function playSoundEffect(audioElem, volume = 0.8) {
              if (audioElem && !isMuted) {
                 audioElem.volume = volume;
-                audioElem.currentTime = 0; 
+                audioElem.currentTime = 0; // Rewind to start for instant playback
                 audioElem.play().catch(e => console.log("Sound effect play prevented:", e));
             }
         }
+
         function stopMusic(audioElem) {
-            if (audioElem && !audioElem.paused) { audioElem.pause(); }
+            if (audioElem) { // Check if element exists before pausing
+                audioElem.pause();
+            }
         }
-        function manageMusic(screenId) {
-            if (screenId === 'game-screen') { stopMusic(menuMusic); playMusic(gameMusic, 0.4); } 
-            else if (['splash-screen', 'home-screen', 'settings-screen', 'online-lobby', 'local-config', 'ai-config'].includes(screenId)) { stopMusic(gameMusic); playMusic(menuMusic, 0.3); } 
-            else { stopMusic(menuMusic); stopMusic(gameMusic); }
-        }
-        function toggleMute() { 
-            isMuted = !isMuted; 
-            if (menuMusic) menuMusic.muted = isMuted; 
-            if (gameMusic) gameMusic.muted = isMuted; 
-            if (clickSound) clickSound.muted = isMuted; 
-            if (winSound) winSound.muted = isMuted;     
-            if (drawSound) drawSound.muted = isMuted;   
-            if (!isMuted) { manageMusic(currentScreen); }
-            document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊'; 
-        } 
         
+        function manageMusic(screenId) {
+            if (screenId === 'game-screen') {
+                stopMusic(menuMusic);
+                playMusic(gameMusic, 0.4); 
+            } else if (screenId === 'splash-screen' || screenId === 'home-screen' || screenId === 'online-lobby' || screenId === 'local-config' || screenId === 'ai-config') {
+                stopMusic(gameMusic);
+                playMusic(menuMusic, 0.3);
+            } else {
+                stopMusic(menuMusic);
+                stopMusic(gameMusic);
+            }
+        }
+        
+        /**
+         * Handles the click on the "PLAY GAME" button, showing the spinner
+         * and waiting for the loading time before transitioning to the home screen.
+         */
+        function handlePlayClick() {
+            if (playButton) playButton.style.display = 'none';
+            if (loadingSpinner) loadingSpinner.style.display = 'block';
+            
+            // Initial music start (menuMusic will start)
+            playMusic(menuMusic, 0.3);
+
+            setTimeout(() => {
+                showScreen('home-screen');
+                
+                if (splashScreen) {
+                    setTimeout(() => {
+                        splashScreen.classList.remove('active');
+                        splashScreen.style.display = 'none'; 
+                    }, 100); 
+                }
+                
+                if (loadingSpinner) loadingSpinner.style.display = 'none';
+                if (playButton) playButton.style.display = 'block'; 
+            }, LOADING_TIME_MS);
+        }
+
         // --- SCREEN MANAGEMENT ---
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+        
+        function showScreen(screenId, isGameStart = false) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                 screen.classList.remove('active');
+            });
+
             const screen = document.getElementById(screenId);
             if (screen) {
                 screen.classList.add('active');
                 currentScreen = screenId;
             }
 
-            // General Controls Visibility
-            const homeScreens = ['splash-screen', 'home-screen'];
-            document.getElementById('backBtn').style.display = homeScreens.includes(screenId) ? 'none' : 'block';
-            document.getElementById('settingsBtn').style.display = (screenId === 'home-screen' || screenId === 'settings-screen') ? 'block' : 'none';
-            rematchBtn.style.display = 'none'; 
+            // Reset post-game actions when navigating away
+            postGameActionsDiv.style.display = 'none';
 
-            // Game-specific visibility checks
-            const isOnlineGame = screenId === 'game-screen' && mode === 'online' && localPlayer;
-            document.getElementById('chatOpenBtn').style.display = isOnlineGame ? 'block' : 'none'; // CHAT ISOLATION
-            document.getElementById('emoji-bar').style.display = isOnlineGame ? 'flex' : 'none';
-
-            if (screenId !== 'game-screen') { chatOverlay.classList.remove('visible'); }
+            // Manage fixed buttons (Back, Chat)
+            backBtn.style.display = (screenId === 'home-screen' || screenId === 'splash-screen') ? 'none' : 'block';
             
+            chatOpenBtn.style.display = (screenId === 'game-screen' && mode === 'online' && localPlayer) ? 'block' : 'none';
+            if (screenId !== 'game-screen') {
+                chatOverlay.classList.remove('visible'); // Hide chat when leaving game screen
+            }
+            
+            // --- MUSIC MANAGEMENT ---
             manageMusic(screenId);
             
-            if (screenId === 'game-screen') {
-                // Game Start/Setup Logic
+            // Special handling for screen transitions
+            if (screenId === 'game-screen' && isGameStart) {
                 if (mode === 'local' || mode === 'ai') {
-                    if (mode === 'ai' && boardSize !== 3) { boardSize = 3; setBoardSize(3, null, 'game-screen'); }
                     resetGame();
                     localScoreboardDiv.style.display = 'inline-block';
                     onlineScoreboardDiv.style.display = 'none';
-                    document.getElementById('gameTitle').textContent = mode === 'local' ? 'LOCAL FRIEND GAME' : `AI GAME (${aiDifficulty.toUpperCase()})`;
+                    
+                    // Set local player names
+                    playerNames['X'] = document.getElementById(mode === 'local' ? 'playerNameX' : 'playerNameAIAI').value || 'Player X';
+                    playerNames['O'] = document.getElementById(mode === 'local' ? 'playerNameO' : 'AI Bot').value || 'Player O';
+                    
+                    if(mode === 'ai') playerNames['O'] = 'AI Bot (' + aiDifficulty.charAt(0).toUpperCase() + ')';
+                    
+                    updatePlayerNamesDisplay();
+
+                    gameTitle.textContent = mode === 'local' ? 'LOCAL FRIEND GAME' : `AI GAME (${aiDifficulty.toUpperCase()})`;
                 } else if (mode === 'online' && localPlayer) {
-                    document.getElementById('gameTitle').textContent = `ONLINE GAME (${localPlayer === 'X' ? playerIconX : playerIconO})`;
+                    gameTitle.textContent = `ONLINE GAME (${playerNames[localPlayer]})`;
                     localScoreboardDiv.style.display = 'none';
                     onlineScoreboardDiv.style.display = 'inline-block';
-                    document.getElementById('onlineIconLocal').textContent = localPlayer === 'X' ? playerIconX : playerIconO;
-                    document.getElementById('onlineIconOpponent').textContent = localPlayer === 'X' ? playerIconO : playerIconX;
-                    if (db && roomId) { syncGame(); } 
+                    document.getElementById('onlinePlayerName').disabled = true;
+                    if (db && roomId) syncGame(); 
                 }
-                setBoardSize(boardSize, null, 'game-screen'); 
+            } else if (screenId === 'local-config') {
+                 mode = 'local';
+                 setBoardSize(boardSize, document.getElementById('size3x3Btn'), false, 'local-config');
+                 startGame('local', null, document.getElementById('localPlayBtn'));
+            } else if (screenId === 'ai-config') {
+                 mode = 'ai';
+                 setBoardSize(3, document.getElementById('aiSize3x3Btn'), false, 'ai-config');
+                 startGame('ai', 'hard', document.querySelector('#aiDifficultyControls button:last-child')); // Default hard
             } else if (screenId === 'online-lobby') {
-                 document.getElementById('onlineWaitingScreen').style.display = 'none';
-                 document.getElementById('startGameOnlineBtn').style.display = 'none';
+                 mode = 'online';
+                 document.getElementById('onlinePlayerName').disabled = false;
+                 setBoardSize(boardSize, document.getElementById('onlineSize3x3Btn'), false, 'online-lobby');
             }
         }
         
-        function handlePlayClick() {
-            document.getElementById('play-button').style.display = 'none';
-            document.getElementById('loading-spinner').style.display = 'block';
-            playMusic(menuMusic, 0.3);
-            setTimeout(() => {
-                showScreen('home-screen');
-                document.getElementById('splash-screen').classList.remove('active');
-            }, LOADING_TIME_MS);
+        function updatePlayerNamesDisplay() {
+            nameXDisplay.innerHTML = `X: <strong>${playerNames['X']}</strong>`;
+            nameODisplay.innerHTML = `O: <strong>${playerNames['O']}</strong>`;
+            nameScoreX.textContent = playerNames['X'];
+            nameScoreO.textContent = playerNames['O'];
         }
-        
+
         function toggleChatOverlay() {
             chatOverlay.classList.toggle('visible');
         }
+
+        function handleBack(isUserInitiated = false) {
+            if (chatOverlay.classList.contains('visible')) {
+                toggleChatOverlay(); 
+                return;
+            }
+            
+            stopTimer();
+            if (currentScreen === 'game-screen') {
+                if (mode === 'online') {
+                    showScreen('online-lobby');
+                } else if (mode === 'ai') {
+                     showScreen('ai-config');
+                } else {
+                    showScreen('local-config');
+                }
+            } else if (currentScreen === 'online-lobby' || currentScreen === 'local-config' || currentScreen === 'ai-config') {
+                if (mode === 'online' && roomId && db) {
+                     db.ref('games/' + roomId).off();
+                     roomId = null;
+                     localPlayer = null;
+                     startGameOnlineBtn.style.display = 'none';
+                     loadingSpinnerOnline.style.display = 'none';
+                     document.getElementById('onlineStatus').textContent = 'Enter an ID or create a game.';
+                     document.getElementById('onlinePlayerName').disabled = false;
+                     playerNames = { 'X': 'Player X', 'O': 'Player O' };
+                }
+                showScreen('home-screen');
+            }
+            mode = 'local'; 
+        }
         
-        // --- TIMER LOGIC (Simplified/Kept from previous) ---
+        // NEW: Handles the rematch button click
+        function handleRematch() {
+            if (mode === 'local' || mode === 'ai') {
+                resetGame();
+            }
+        }
+        
+        // --- Timer Logic (FIXED: Countdown) ---
+        function handleTimeLimitReached() {
+            if (!gameActive) { stopTimer(); return; }
+            const nextPlayer = currentPlayer === 'X' ? 'O' : 'X';
+            const statusMessage = `Time expired for **${playerNames[currentPlayer]}**! Turn passed to **${playerNames[nextPlayer]}**.`;
+
+            if (mode === 'online') {
+                if (currentPlayer === localPlayer) {
+                    gameStatusP.innerHTML = statusMessage;
+                    db.ref('games/' + roomId).update({
+                        currentPlayer: nextPlayer,
+                        lastMoveTime: firebase.database.ServerValue.TIMESTAMP
+                    });
+                }
+            } else {
+                gameStatusP.innerHTML = statusMessage;
+                currentPlayer = nextPlayer;
+                resetLocalTimer();
+                drawBoard();
+                if (mode === 'ai' && currentPlayer === 'O') { setTimeout(aiMove, 500); }
+            }
+        }
+
         function startTimer(startTime) {
             stopTimer(); 
-            document.getElementById('timerValue').style.color = 'var(--color-text-light)';
             timerDisplay.style.display = 'block';
-            const timerValueSpan = document.getElementById('timerValue');
-
             timerInterval = setInterval(() => {
                 const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
                 const remainingSec = TIME_LIMIT_SECONDS - elapsedSec;
                 
                 if (remainingSec <= 0) {
                     stopTimer();
-                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-                    resetLocalTimer();
-                    drawBoard();
+                    handleTimeLimitReached();
                     return; 
                 }
                 
                 timerValueSpan.textContent = `${remainingSec}s`;
-                if (remainingSec <= 5) { timerValueSpan.style.color = '#f05a7f'; } 
-                else if (remainingSec <= 15) { timerValueSpan.style.color = '#ff8e3c'; } 
-                else { timerValueSpan.style.color = 'var(--color-secondary-accent)'; }
+                timerValueSpan.style.color = 'var(--color-text-light)';
+                
+                if (remainingSec <= 5) {
+                    timerValueSpan.style.color = '#f05a7f'; // Critical Red
+                } else if (remainingSec <= 15) {
+                    timerValueSpan.style.color = '#ff8e3c'; // Warning Orange
+                }
             }, 1000);
         }
 
         function stopTimer() {
             if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-            timerDisplay.style.display = 'none';
+            if (autoResetTimeout) { clearTimeout(autoResetTimeout); autoResetTimeout = null; }
+            timerValueSpan.textContent = `${TIME_LIMIT_SECONDS}s`;
+            timerValueSpan.style.color = 'var(--color-text-light)'; 
         }
-        
+
         function resetLocalTimer() {
             localMoveStartTime = Date.now();
             if ((mode === 'local' || mode === 'ai') && gameActive) {
@@ -571,38 +963,70 @@
             }
         }
         
-        // --- CORE GAME LOGIC ---
+        // --- Core Game Logic Functions ---
+        function getWinLength(size) {
+            return size;
+        }
         
-        function setBoardSize(size, button, location) {
+        function setBoardSize(size, button, skipReset = false, location = 'local-config') {
             const previousSize = boardSize;
             boardSize = size;
             const newBoardLength = size * size;
             
-            if (previousSize !== size && location !== 'game-screen') {
+            if (!skipReset && previousSize !== size) {
                 board = Array(newBoardLength).fill('');
             }
             
             gameDiv.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
             
+            let cellSize, fontSize;
             const containerWidth = Math.min(window.innerWidth * 0.95, 500); 
-            const cellSize = (containerWidth / size) - 4; 
-            const fontSize = cellSize / 2.5; 
+            cellSize = (containerWidth / size) - (size === 3 ? 5 : 4); 
+            fontSize = cellSize / 2.5; 
             
             gameDiv.style.setProperty('--cell-size', `${cellSize}px`);
             gameDiv.style.setProperty('--font-size', `${fontSize}px`);
-            gameDiv.style.setProperty('--board-size', boardSize);
+            gameDiv.style.setProperty('--board-size', size);
             
-            if (location === 'online-lobby') { document.getElementById('lobbyBoardSize').textContent = `${size}x${size}`; }
-
-            // UI Button activation logic
-            let sizeControlsId = (location === 'local-config') ? 'localBoardSizeControls' : 'onlineBoardSizeControls';
-            if (document.getElementById(sizeControlsId)) {
-                document.querySelectorAll(`#${sizeControlsId} button`).forEach(btn => btn.classList.remove('selected')); // Changed to 'selected'
-                if (button) { button.classList.add('selected'); }
+            // --- UI/Button Activation Logic ---
+            const sizeControlsId = location === 'local-config' ? 'boardSizeControls' : (location === 'ai-config' ? 'aiBoardSizeControls' : 'onlineBoardSizeControls');
+            
+            // Deactivate all in current location
+            document.querySelectorAll(`#${sizeControlsId} button`).forEach(btn => { 
+                btn.classList.remove('active'); 
+            }); 
+            if (button) { 
+                button.classList.add('active'); 
             }
             
-            // Critical: Ensure board redraws when the size changes or game starts
-            if (currentScreen === 'game-screen' || location === 'game-screen') drawBoard(); 
+            // Sync board size displays
+            if (location === 'online-lobby') {
+                lobbyBoardSizeSpan.textContent = `${size}x${size}`;
+            }
+
+            // AI Controls visibility logic only relevant on local-config/ai-config
+            if (location === 'local-config' && size !== 3) {
+                 // Deactivate AI button if active and size > 3
+                 setActiveButton('aiControls', null);
+            }
+            
+            // --- Game Reset/Online Logic (SKIPPED if skipReset is TRUE) ---
+            if (skipReset) {
+                drawBoard(); 
+                return;
+            }
+            
+            if (location !== 'online-lobby' && mode !== 'online') {
+                drawBoard();
+            } else if (location === 'online-lobby' && mode === 'online' && roomId && localPlayer) {
+                db.ref('games/' + roomId).update({
+                    boardSize: size,
+                    board: Array(size * size).fill(''),
+                    currentPlayer: 'X', 
+                    gameActive: true,
+                    lastMoveTime: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
         }
         
         function drawBoard() { 
@@ -612,17 +1036,10 @@
             board.forEach((val, i) => { 
                 const cell = document.createElement('div'); 
                 cell.className = 'cell'; 
-                
-                if (val === 'X') {
-                    cell.textContent = playerIconX;
-                    cell.setAttribute('data-player', 'X'); 
-                } else if (val === 'O') {
-                    cell.textContent = playerIconO;
-                    cell.setAttribute('data-player', 'O'); 
-                }
-                
+                cell.innerHTML = val ? `<strong>${val}</strong>` : ''; // Use strong for better visibility
                 cell.setAttribute('data-index', i); 
                 
+                // NEW: Apply winning class
                 if (!gameActive && finalResult.winningIndices && finalResult.winningIndices.includes(i)) { 
                     cell.classList.add('winner'); 
                 } 
@@ -631,76 +1048,131 @@
             }); 
             
             if (currentScreen === 'game-screen') {
-                if (!gameActive) {
+                 postGameActionsDiv.style.display = gameActive ? 'none' : 'block';
+                 if (mode === 'online') postGameActionsDiv.style.display = 'none'; // No rematch in online
+
+                if (mode === 'online' && localPlayer) { 
+                    if (!gameActive) { 
+                        const result = checkWinner(board, false);
+                        const winnerName = result.winner === localPlayer ? 'YOU' : (result.winner === 'Draw' ? 'IT' : 'OPPONENT');
+                        gameStatusP.innerHTML = `GAME OVER! ${result.winner === 'Draw' ? 'IT\'S A DRAW!' : `<strong>${result.winner} (${winnerName})</strong> WINS!`}. Starting new round in 3 seconds...`; 
+                        
+                        if(result.winner === 'Draw') playSoundEffect(drawSound);
+                        else playSoundEffect(winSound);
+                        stopTimer(); 
+                    } else { 
+                        const turnPlayerName = playerNames[currentPlayer] || currentPlayer;
+                        const turnMessage = (currentPlayer === localPlayer) ? 'YOUR TURN!' : `${turnPlayerName}'S TURN.`;
+                        gameStatusP.innerHTML = `YOU ARE <strong>${localPlayer} (${playerNames[localPlayer]})</strong>. IT IS <strong>${turnMessage}</strong>`; 
+                    } 
+                } else if (gameActive) {
+                    gameStatusP.innerHTML = `<strong>${playerNames[currentPlayer]} (${currentPlayer})</strong>'S TURN.`;
+                } else {
                     const result = checkWinner(board, false);
-                    gameStatusP.innerHTML = `GAME OVER! ${result.winner === 'Draw' ? 'IT\'S A DRAW!' : `<strong>${result.winner === 'X' ? playerIconX : playerIconO}</strong> WINS!`}`; 
-                    if(result.winner === 'Draw') playSoundEffect(drawSound);
-                    else playSoundEffect(winSound);
-                    stopTimer(); 
-                    rematchBtn.style.display = 'block'; 
-                    if (finalResult.winner && finalResult.winner !== 'Draw') { drawStrikeLine(finalResult.winningIndices, finalResult.winner); }
-                } else { 
-                    const icon = currentPlayer === 'X' ? playerIconX : playerIconO;
-                    gameStatusP.innerHTML = `<strong>${icon}</strong>'S TURN.`;
-                    let oldStrike = gameDiv.querySelector('.strike-line');
-                    if (oldStrike) oldStrike.remove();
+                    const winnerName = playerNames[result.winner] || result.winner;
+                     gameStatusP.innerHTML = `GAME OVER! ${result.winner === 'Draw' ? 'IT\'S A DRAW!' : `<strong>${result.winner} (${winnerName})</strong> WINS!`}.`;
                 }
             }
         } 
 
         function handleClick(index) { 
             if (!gameActive || board[index]) return; 
+            
             playSoundEffect(clickSound); 
 
             if (mode === 'online') { 
-                if (currentPlayer !== localPlayer) { showToast(`It is ${currentPlayer}'s turn.`, 1500); return; } 
+                if (currentPlayer !== localPlayer) { 
+                    gameStatusP.textContent = `IT IS NOT YOUR TURN (${playerNames[currentPlayer]}'S TURN).`; 
+                    return; 
+                } 
                 handleOnlineMove(index); 
             } else { 
-                const player = currentPlayer;
-                const playerIcon = player === 'X' ? playerIconX : playerIconO;
-                board[index] = player; 
-                const result = checkWinner(board, true); 
+                board[index] = currentPlayer; 
+                const result = checkWinner(board, true);
                 
                 if (result.winner) {
                     updateLocalScore(result.winner);
-                    drawBoard(); 
-                    showToast(result.winner === 'Draw' ? "It's a Draw!" : `${playerIcon} Wins!`);
+                    if(result.winner === 'Draw') playSoundEffect(drawSound);
+                    else playSoundEffect(winSound);
+                    drawBoard();
+                    // Rematch button is shown by drawBoard -> postGameActionsDiv
                 } else {
-                    currentPlayer = player === 'X' ? 'O' : 'X'; 
+                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X'; 
                     drawBoard(); 
                     resetLocalTimer(); 
-                    if (mode === 'ai' && currentPlayer === 'O' && boardSize === 3) { setTimeout(aiMove, 500); }
+                    if (mode === 'ai' && currentPlayer === 'O' && boardSize === 3) {
+                        setTimeout(aiMove, 500); 
+                    }
                 }
             } 
         } 
-        
-        // --- AI LOGIC ---
-        function aiMove() {
-            if (!gameActive || currentPlayer !== 'O') return;
-            const emptyIndices = board.map((val, i) => val === '' ? i : -1).filter(i => i !== -1);
-            if (emptyIndices.length === 0) return;
-            
-            // Simplified: Random move
-            const bestMove = emptyIndices[Math.floor(Math.random() * emptyIndices.length)]; 
-            handleClick(bestMove);
-        }
-        
-        function selectAIDifficulty(difficulty, button) {
-            aiDifficulty = difficulty;
-            document.querySelectorAll('#aiDifficultyControls button').forEach(btn => btn.classList.remove('selected'));
-            if (button) button.classList.add('selected');
+
+        function checkWinner(currentBoard, updateGlobalState = false) {
+            const size = boardSize;
+            // The N-in-a-row rule: 3x3 must be 3; 4x4 must be 4; 5x5 must be 5.
+            const N = size; 
+
+            const index = (r, c) => r * size + c;
+            const isValid = (r, c) => r >= 0 && r < size && c >= 0 && c < size;
+
+            const checkLine = (r, c, dr, dc) => {
+                const player = currentBoard[index(r, c)];
+                if (!player) return null;
+
+                let winningIndices = [index(r, c)];
+                for (let k = 1; k < N; k++) {
+                    const nr = r + k * dr;
+                    const nc = c + k * dc;
+
+                    if (!isValid(nr, nc) || currentBoard[index(nr, nc)] !== player) {
+                        return null;
+                    }
+                    winningIndices.push(index(nr, nc));
+                }
+                return { winner: player, winningIndices };
+            };
+
+            const directions = [
+                [0, 1], [1, 0], [1, 1], [1, -1] 
+            ];
+
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (currentBoard[index(r, c)]) {
+                        for (let [dr, dc] of directions) {
+                            const result = checkLine(r, c, dr, dc);
+                            if (result) {
+                                if (updateGlobalState) { gameActive = false; stopTimer(); }
+                                return result;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!currentBoard.includes('')) {
+                if (updateGlobalState) { gameActive = false; stopTimer(); }
+                return { winner: 'Draw' };
+            }
+
+            return {}; 
         }
 
-        // --- WINNING LINE, SCORE, & RESET (Simplified) ---
-        function drawStrikeLine(winningIndices, winner) { /* ... (Logic omitted for brevity, but is in the full code) ... */ }
-        function checkWinner(currentBoard, updateGlobalState = false) { /* ... (Logic omitted for brevity, but is in the full code) ... */ return {}; }
-        
         function updateLocalScore(winner) { 
             if (winner === 'X') scoreX.textContent = +scoreX.textContent + 1; 
             else if (winner === 'O') scoreO.textContent = +scoreO.textContent + 1; 
             else if (winner === 'Draw') scoreDraws.textContent = +scoreDraws.textContent + 1; 
         } 
         
+        function updateOnlineScoreboard(scores) { 
+            const localWinCount = localPlayer === 'X' ? scores.scoreX : scores.scoreO; 
+            const opponentWinCount = localPlayer === 'X' ? scores.scoreO : scores.scoreX; 
+            onlineScoreLocal.textContent = localWinCount; 
+            onlineScoreOpponent.textContent = opponentWinCount; 
+            onlineScoreDraws.textContent = scores.draws; 
+            localPlayerDisplay.textContent = `${localPlayer} (${playerNames[localPlayer]})`; 
+        } 
+
         function resetGame() { 
             stopTimer(); 
             const newBoardLength = boardSize * boardSize;
@@ -709,113 +1181,390 @@
             gameActive = true; 
             drawBoard(); 
             resetLocalTimer(); 
-            if (mode === 'ai' && currentPlayer === 'O') { setTimeout(aiMove, 500); }
         } 
         
-        function startGame(newMode, difficulty) {
-            mode = newMode;
-            if (newMode === 'ai') aiDifficulty = difficulty;
-            if (newMode === 'online') localPlayer = null; 
-        }
+        function setActiveButton(containerId, activeButton) { 
+            document.querySelectorAll(`#${containerId} button`).forEach(btn => { 
+                btn.classList.remove('active'); 
+            }); 
+            if (activeButton) { 
+                activeButton.classList.add('active'); 
+            }
+        } 
         
-        function handleRematch() { 
-             if (mode === 'online') { showToast("Rematch functionality is simplified for this demo."); } 
-             else { resetGame(); showToast("Rematch started!"); } 
+        function startGame(selectedMode, difficulty, button) { 
+            mode = selectedMode; 
+            setActiveButton('modeControls', null);
+            setActiveButton('aiDifficultyControls', null);
+
+            if (mode === 'local') {
+                button.classList.add('active');
+            } else if (mode === 'ai') {
+                aiDifficulty = difficulty; 
+                button.classList.add('active');
+            }
+            scoreX.textContent = '0'; 
+            scoreO.textContent = '0'; 
+            scoreDraws.textContent = '0'; 
+        } 
+        
+        // NEW: isReaction parameter
+        function sendChatMessage(messageOrReaction, isReaction = false) {
+            if (!db || !roomId || !localPlayer) return;
+
+            const message = isReaction ? messageOrReaction : chatInput.value.trim();
+            if (!message) return;
+
+            const chatRef = db.ref('games/' + roomId + '/chat');
+            chatRef.push({
+                sender: localPlayer,
+                message: message,
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                isReaction: isReaction 
+            });
+
+            if (!isReaction) chatInput.value = '';
         }
 
-        // --- ONLINE LOBBY & FIREBASE (Simplified) ---
-        function generateRoomId() { return Math.random().toString(36).substring(2, 8).toUpperCase(); } 
+        function syncChat() {
+            if (!db || !roomId) return;
+            db.ref('games/' + roomId + '/chat').off(); 
+            chatMessages.innerHTML = ''; 
+
+            db.ref('games/' + roomId + '/chat').on('child_added', snapshot => {
+                const messageData = snapshot.val();
+                const sender = messageData.sender;
+                const message = messageData.message;
+                const senderName = playerNames[sender] || sender;
+                const isReaction = messageData.isReaction || false;
+
+                const msgElement = document.createElement('p');
+                
+                if(isReaction) {
+                    msgElement.innerHTML = `<span class="chat-message-system">${senderName} sent a reaction:</span> <span style="font-size: 1.2rem;">${message}</span>`;
+                } else {
+                     msgElement.textContent = `[${senderName}]: ${message}`;
+                }
+                
+                msgElement.className = sender === 'X' ? 'chat-message-x' : 'chat-message-o';
+                chatMessages.appendChild(msgElement);
+                
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+        }
+
+        function generateRoomId() { 
+            return Math.random().toString(36).substring(2, 8).toUpperCase(); 
+        } 
+        
         function createGame() { 
-            if (!db) return showToast("Online not available.");
-            roomId = document.getElementById('roomIdInput').value.trim() || generateRoomId(); 
+            if (!db) return;
+            roomId = roomIdInput.value.trim() || generateRoomId(); 
             localPlayer = 'X'; 
+            playerNames['X'] = document.getElementById('onlinePlayerName').value.trim() || 'Player X';
+            playerNames['O'] = 'Waiting...';
+            
+            loadingSpinnerOnline.style.display = 'block';
+            
             db.ref('games/' + roomId).set({ 
-                board: Array(boardSize * boardSize).fill(''), boardSize: boardSize, currentPlayer: 'X', 
-                gameActive: true, playerX: true, playerO: false, 
-                playerXIcon: playerIconX, playerOIcon: playerIconO, 
-                scores: { scoreX: 0, scoreO: 0, draws: 0 }, lastMoveTime: firebase.database.ServerValue.TIMESTAMP
+                board: Array(boardSize * boardSize).fill(''), 
+                boardSize: boardSize, 
+                currentPlayer: 'X', 
+                gameActive: true, 
+                playerX: true, 
+                playerO: false, 
+                playerXName: playerNames['X'], 
+                playerOName: playerNames['O'], 
+                scores: { scoreX: 0, scoreO: 0, draws: 0 },
+                lastMoveTime: firebase.database.ServerValue.TIMESTAMP 
             }).then(() => { 
-                document.getElementById('onlineStatus').innerHTML = `Game created! ID: <strong>${roomId}</strong>. Waiting for Player O...`; 
-                document.getElementById('onlineWaitingScreen').style.display = 'block';
+                document.getElementById('onlineStatus').innerHTML = `Game created! Your ID is: <strong>${roomId}</strong>. Waiting for Player O...`; 
+                roomIdInput.value = roomId; 
+                startGameOnlineBtn.style.display = 'block';
+                document.getElementById('onlineScoreLocal').textContent = '0'; 
+                document.getElementById('onlineScoreOpponent').textContent = '0'; 
+                document.getElementById('onlineScoreDraws').textContent = '0'; 
                 syncGame(); 
+                syncChat(); 
+                loadingSpinnerOnline.style.display = 'none';
+            }).catch(e => {
+                document.getElementById('onlineStatus').textContent = `Error creating game: ${e.message}`;
+                loadingSpinnerOnline.style.display = 'none';
             }); 
         } 
         
         function joinGame() { 
-            if (!db) return showToast("Online not available.");
-            roomId = document.getElementById('roomIdInput').value.trim(); 
-            if (!roomId) { document.getElementById('onlineStatus').textContent = "Please enter a Room ID."; return; } 
+            if (!db) return;
+            roomId = roomIdInput.value.trim(); 
+            playerNames['O'] = document.getElementById('onlinePlayerName').value.trim() || 'Player O';
+
+            if (!roomId) { 
+                document.getElementById('onlineStatus').textContent = "Please enter a Room ID."; 
+                return; 
+            } 
+            loadingSpinnerOnline.style.display = 'block';
+
             db.ref('games/' + roomId).once('value', snapshot => { 
                 const gameState = snapshot.val(); 
                 if (snapshot.exists() && !gameState.playerO) { 
                     localPlayer = 'O'; 
-                    setBoardSize(gameState.boardSize, null, 'online-lobby');
-                    db.ref('games/' + roomId).update({ playerO: true, playerOIcon: playerIconO }) 
+                    playerNames['X'] = gameState.playerXName || 'Player X';
+                    
+                    if (gameState.boardSize !== boardSize) {
+                        setBoardSize(gameState.boardSize, null, false, 'online-lobby');
+                    }
+                    
+                    db.ref('games/' + roomId).update({
+                        playerO: true,
+                        playerOName: playerNames['O'] 
+                    }) 
                     .then(() => { 
-                        document.getElementById('onlineStatus').innerHTML = `Joined game <strong>${roomId}</strong>! You are ${playerIconO}. Click 'Go to Game'.`; 
-                        document.getElementById('onlineWaitingScreen').style.display = 'none';
-                        document.getElementById('startGameOnlineBtn').style.display = 'block';
-                        updateIconDisplay();
+                        document.getElementById('onlineStatus').innerHTML = `Joined game <strong>${roomId}</strong>! You are O. X goes first. Click 'Go to Game'.`; 
+                        startGameOnlineBtn.style.display = 'block';
                         syncGame();
+                        syncChat(); 
                     }); 
-                } else { document.getElementById('onlineStatus').textContent = "Room is full or does not exist."; } 
+                } else if (snapshot.exists() && gameState.playerO) { 
+                    document.getElementById('onlineStatus').textContent = "Room is full."; 
+                } else { 
+                    document.getElementById('onlineStatus').textContent = "Room does not exist."; 
+                } 
+                loadingSpinnerOnline.style.display = 'none';
+            }).catch(e => {
+                document.getElementById('onlineStatus').textContent = `Error joining game: ${e.message}`;
+                loadingSpinnerOnline.style.display = 'none';
             }); 
         } 
         
-        function syncGame() { /* ... (Logic omitted for brevity, but is in the full code) ... */ } 
-        function handleOnlineMove(index) { /* ... (Logic omitted for brevity, but is in the full code) ... */ }
-        function sendChatMessage() { /* ... (Logic omitted for brevity, but is in the full code) ... */ }
-        function sendEmoji(emoji) { /* ... (Logic omitted for brevity, but is in the full code) ... */ }
-
-        function handleBack() {
-            stopTimer();
-            let destination = 'home-screen';
-            if (currentScreen === 'settings-screen') destination = 'home-screen';
-            else if (currentScreen === 'local-config' || currentScreen === 'ai-config' || currentScreen === 'online-lobby') destination = 'home-screen';
-            else if (currentScreen === 'game-screen') {
-                if (mode === 'online') { 
-                    if (db && roomId) db.ref('games/' + roomId).off();
-                    localPlayer = null;
-                    roomId = null;
-                    destination = 'online-lobby'; 
-                } else if (mode === 'ai') {
-                    destination = 'ai-config';
-                } else {
-                    destination = 'local-config';
+        function syncGame() { 
+            if (!db) return;
+            db.ref('games/' + roomId).off(); 
+            
+            db.ref('games/' + roomId).on('value', snapshot => { 
+                if (!snapshot.exists()) return; 
+                const gameState = snapshot.val(); 
+                
+                // Update player names immediately
+                playerNames['X'] = gameState.playerXName || 'Player X';
+                playerNames['O'] = gameState.playerOName || 'Waiting...';
+                
+                if (gameState.boardSize && gameState.boardSize !== boardSize) {
+                    setBoardSize(gameState.boardSize, null, true); 
                 }
-            }
-            showScreen(destination);
+
+                const prevGameActive = gameActive;
+                board = gameState.board; 
+                currentPlayer = gameState.currentPlayer; 
+                gameActive = gameState.gameActive; 
+                
+                // Timer Logic
+                if (gameState.lastMoveTime && gameActive && localPlayer === currentPlayer) {
+                    startTimer(gameState.lastMoveTime);
+                } else {
+                    stopTimer(); 
+                }
+                
+                if (gameState.scores) { 
+                    updateOnlineScoreboard(gameState.scores); 
+                } 
+                drawBoard(); 
+                
+                // Auto-reset logic (only X handles this)
+                if (prevGameActive && !gameActive) { 
+                    if (autoResetTimeout) clearTimeout(autoResetTimeout);
+                    autoResetTimeout = setTimeout(() => { 
+                        if (localPlayer === 'X') {
+                            db.ref('games/' + roomId).once('value', currentSnapshot => {
+                                const currentGameState = currentSnapshot.val();
+                                const newBoardLength = currentGameState.boardSize * currentGameState.boardSize;
+
+                                db.ref('games/' + roomId).update({ 
+                                    board: Array(newBoardLength).fill(''), 
+                                    currentPlayer: 'X', 
+                                    gameActive: true, 
+                                    boardSize: currentGameState.boardSize, 
+                                    lastMoveTime: firebase.database.ServerValue.TIMESTAMP 
+                                });
+                            });
+                        }
+                    }, 3000);
+                }
+                
+                // Check if opponent has joined
+                if (currentScreen === 'online-lobby' && gameState.playerO && localPlayer === 'X') {
+                    document.getElementById('onlineStatus').innerHTML = `Opponent (${playerNames['O']}) has joined! Click 'Go to Game'.`;
+                }
+            }); 
+        } 
+        
+        function handleOnlineMove(index) { 
+            if (!db) return;
+            
+            const tempBoard = board.slice();
+            tempBoard[index] = localPlayer; 
+            const result = checkWinner(tempBoard, false); 
+            const nextPlayer = localPlayer === 'X' ? 'O' : 'X'; 
+            
+            db.ref('games/' + roomId).once('value', snapshot => {
+                if (!snapshot.exists()) return;
+                const gameState = snapshot.val();
+                let newScores = gameState.scores || { scoreX: 0, scoreO: 0, draws: 0 };
+                
+                let updateData = { 
+                    board: tempBoard, 
+                    currentPlayer: nextPlayer, 
+                    gameActive: true,
+                    lastMoveTime: firebase.database.ServerValue.TIMESTAMP 
+                };
+
+                if (result.winner || result.winner === 'Draw') {
+                    updateData.gameActive = false;
+                    updateData.currentPlayer = localPlayer; 
+                    
+                    if (result.winner === 'X') newScores.scoreX++; 
+                    else if (result.winner === 'O') newScores.scoreO++; 
+                    else if (result.winner === 'Draw') newScores.draws++; 
+                    updateData.scores = newScores;
+                }
+                
+                db.ref('games/' + roomId).update(updateData); 
+            });
+            stopTimer(); 
+        } 
+
+        // --- AI (Minimax) Logic (Unchanged) ---
+        const scores = { 'O': 10, 'X': -10, 'Draw': 0 }; 
+
+        function getEmptyIndices(currentBoard) {
+            return currentBoard.map((v, i) => v === '' ? i : null).filter(v => v !== null);
         }
         
-        // --- INITIALIZATION ---
+        function minimax(currentBoard, player) {
+            const result = checkWinner(currentBoard, false); 
+            if (result.winner !== undefined && result.winner !== null) { return scores[result.winner]; }
+            let availableSpots = getEmptyIndices(currentBoard);
+            if (player === 'O') {
+                let bestScore = -Infinity;
+                for (let i of availableSpots) {
+                    let nextBoard = currentBoard.slice(); 
+                    nextBoard[i] = player;
+                    let score = minimax(nextBoard, 'X'); 
+                    bestScore = Math.max(score, bestScore);
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (let i of availableSpots) {
+                    let nextBoard = currentBoard.slice(); 
+                    nextBoard[i] = player;
+                    let score = minimax(nextBoard, 'O'); 
+                    bestScore = Math.min(score, bestScore);
+                }
+                return bestScore;
+            }
+        }
         
-        document.addEventListener('DOMContentLoaded', () => {
-             // Set default selections
-             document.getElementById(`aiEasyBtn`).classList.add('selected');
-             document.getElementById(`localSize3x3Btn`).classList.add('selected');
-             document.getElementById(`onlineSize3x3Btn`).classList.add('selected');
-             
-             setTheme('dark', document.querySelector('.theme-dark'));
-             setAccent('blue', document.querySelector('.accent-blue'));
-             
-             updateIconDisplay();
-             setBoardSize(3, null, 'home-screen'); 
-             showScreen('splash-screen'); // Ensure it starts on the splash screen
-        });
+        function getBestMove(currentBoard) {
+            let bestScore = -Infinity;
+            let move = -1;
+            let availableSpots = getEmptyIndices(currentBoard);
+            for (let i of availableSpots) {
+                let tempBoard = currentBoard.slice(); 
+                tempBoard[i] = 'O'; 
+                let score = minimax(tempBoard, 'X'); 
+                if (score > bestScore) {
+                    bestScore = score;
+                    move = i;
+                }
+            }
+            return move;
+        }
+
+        function aiMove() { 
+            if (!gameActive || currentPlayer !== 'O' || boardSize !== 3) return; 
+            stopTimer(); 
+            
+            playSoundEffect(clickSound, 0.5); 
+            
+            let empty = getEmptyIndices(board); 
+            let move = -1; 
+
+            if (aiDifficulty === 'easy') { 
+                move = empty[Math.floor(Math.random() * empty.length)]; 
+            } else if (aiDifficulty === 'normal') { 
+                if (Math.random() < 0.75) { 
+                    move = getBestMove(board); 
+                } else { 
+                    move = empty[Math.floor(Math.random() * empty.length)]; 
+                } 
+            } else if (aiDifficulty === 'hard') { 
+                move = getBestMove(board); 
+            } 
+
+            if (move !== -1) { 
+                board[move] = 'O'; 
+                const result = checkWinner(board, true); 
+                if (result.winner) {
+                    updateLocalScore(result.winner);
+                    if(result.winner === 'Draw') playSoundEffect(drawSound);
+                    else playSoundEffect(winSound);
+                    drawBoard(); 
+                } else {
+                    currentPlayer = 'X'; 
+                    drawBoard(); 
+                    resetLocalTimer(); 
+                }
+            } 
+        } 
+
+        function toggleMute() { 
+            isMuted = !isMuted; 
+            
+            // Apply mute state to all audio elements
+            if (menuMusic) menuMusic.muted = isMuted; 
+            if (gameMusic) gameMusic.muted = isMuted; 
+            if (clickSound) clickSound.muted = isMuted; 
+            if (winSound) winSound.muted = isMuted;     
+            if (drawSound) drawSound.muted = isMuted;   
+            
+            // If unmuting, ensure the correct track starts playing
+            if (!isMuted) {
+                manageMusic(currentScreen);
+            }
+            
+            document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊'; 
+        } 
         
-        // Mobile VH Fix
+        // --- JAVASCRIPT FIX FOR MOBILE VH SCROLLING ---
         let resizeTimer; 
+
         function setAppHeight() {
             let vh = window.innerHeight * 0.01;
             document.documentElement.style.setProperty('--vh', `${vh}px`);
         }
+
+        // --- Initial Setup and Resize Fix ---
         window.addEventListener('resize', () => {
             setAppHeight(); 
             clearTimeout(resizeTimer); 
-            resizeTimer = setTimeout(() => { setBoardSize(boardSize, null, currentScreen); }, 250); 
+            resizeTimer = setTimeout(() => {
+                setBoardSize(boardSize, null, true, currentScreen);
+            }, 250); 
         });
         window.addEventListener('orientationchange', setAppHeight);
         setAppHeight(); 
+        
+        // Initial setup for local/AI buttons on first load
+        document.addEventListener('DOMContentLoaded', () => {
+             setBoardSize(3, document.getElementById('size3x3Btn'), false, 'local-config');
+             startGame('local', null, document.getElementById('localPlayBtn'));
+             
+             // Default AI setting
+             setActiveButton('aiDifficultyControls', document.querySelector('#aiDifficultyControls button:last-child'));
+
+             // Set initial mute state
+             toggleMute(); // Mute by default until user interacts (browser policy)
+        });
         
     </script>
 </body>

@@ -10,8 +10,8 @@
     <style>
         /* --- BRANDED COLORS --- */
         :root {
-            --color-primary-accent: #00bfff; /* Electric Blue */
-            --color-secondary-accent: #39ff14; /* Neon Green */
+            --color-primary-accent: #00bfff; /* Electric Blue (X) */
+            --color-secondary-accent: #39ff14; /* Neon Green (O) */
             --color-dark-bg: #0f0f0f;
             --color-panel-bg: #16161a;
             --color-text-light: #eeeeee;
@@ -90,26 +90,20 @@
             font-size: 4rem;
             margin-bottom: 5px;
             letter-spacing: 5px;
-            /* Enhanced H1 glow */
-            text-shadow: 0 0 10px var(--color-primary-accent), 0 0 20px rgba(0, 191, 255, 0.8);
         }
-
-        /* CRITICAL VISIBILITY UPDATE */
         #splash-screen p {
+            color: #4a4d53;
             font-size: 1.2rem;
             margin: 5px;
-            color: white !important; /* Force white color */
-            text-shadow: 0 0 5px white, 0 0 10px white; /* Strong white glow/shadow */
-            font-weight: 700;
         }
         
-        /* CRITICAL TAGLINE VISIBILITY UPDATE */
+        /* --- TAGLINE VISIBILITY ENHANCEMENT --- */
         #tagline {
             font-size: 1.5rem; 
             font-weight: 900; 
             font-style: italic;
-            color: #ff00ff !important; /* Change to BRIGHT PINK for maximum contrast */
-            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff; /* Strong pink neon glow */
+            color: var(--color-secondary-accent);
+            text-shadow: 0 0 10px rgba(57, 255, 20, 1); 
             margin-top: 20px;
             margin-bottom: 30px; 
         }
@@ -147,17 +141,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        /* --- TIMER WARNING STYLES --- */
-        .timer-warning {
-            color: #ff8e3c; /* Orange for warning */
-            text-shadow: 0 0 5px #ff8e3c;
-        }
 
-        .timer-critical {
-            color: #f05a7f; /* Red for critical time */
-            text-shadow: 0 0 8px #f05a7f;
-        }
         /* --- BUTTONS & INPUTS --- */
         button { 
             padding: 14px 30px; 
@@ -209,7 +193,7 @@
             box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
         }
         
-        /* Fixed top controls (Unchanged) */
+        /* Fixed top controls */
         .fixed-control {
             position: fixed;
             top: 10px;
@@ -226,7 +210,7 @@
         #backBtn { left: 10px; display: none; }
         #chatOpenBtn { right: 100px; display: none; } 
 
-        /* --- GAME BOARD (Unchanged) --- */
+        /* --- GAME BOARD --- */
         #game { 
             grid-gap: 8px; 
             padding: 10px;
@@ -238,6 +222,7 @@
             width: 95%; 
             max-width: 450px;
             margin: 0 auto;
+            position: relative; /* CRUCIAL for strike line positioning */
         } 
         .cell { 
             aspect-ratio: 1 / 1; 
@@ -258,7 +243,91 @@
             color: var(--color-dark-bg);
         } 
         
-        /* --- CHAT OVERLAY (Unchanged) --- */
+        /* --- WINNING ANIMATION / STRIKE LINE (NEW) --- */
+        #game-board-container {
+            position: relative; 
+            margin: 20px auto; 
+            max-width: 450px;
+        }
+
+        .strike {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: transparent; 
+            pointer-events: none;
+            z-index: 50; 
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        .strike-line {
+            position: absolute;
+            background-color: red; 
+            box-shadow: 0 0 10px red;
+            transition: width 0.3s ease-out, height 0.3s ease-out, transform 0.3s ease-out;
+        }
+
+        .strike.active {
+            opacity: 1;
+        }
+
+        /* --- PLAYER AVATAR & THEME STYLING (NEW) --- */
+        .player-info-panel {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 10px;
+            margin: 15px auto;
+            max-width: 400px;
+            background: var(--color-panel-bg);
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0, 191, 255, 0.2);
+        }
+        .player-avatar {
+            font-size: 2.5rem;
+            width: 50px;
+            height: 50px;
+            line-height: 50px;
+            border-radius: 50%;
+            text-align: center;
+            background: #242629;
+            border: 2px solid var(--color-primary-accent);
+        }
+        .player-name {
+            font-weight: 700;
+            color: var(--color-primary-accent);
+        }
+
+        /* --- EMOJI BAR (NEW) --- */
+        #emoji-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #emoji-bar h3 {
+            width: 100%;
+            font-size: 1rem;
+            margin-bottom: 5px;
+            color: #ccc;
+            text-shadow: none;
+        }
+        #emoji-bar button {
+            background: #242629;
+            padding: 8px 12px;
+            margin: 5px;
+            font-size: 1.5rem;
+            border: 1px solid #333;
+            transition: background 0.1s;
+        }
+        #emoji-bar button:hover {
+            background: #393e46;
+        }
+        
+        /* --- CHAT OVERLAY --- */
         #chat-overlay {
             position: fixed;
             top: 0;
@@ -426,12 +495,21 @@
             
             <div id="game-info">
                 <p id="gameStatus">Game in progress...</p>
-                <p id="timer" style="display: none;">Turn Time: <span id="timerValue">30s</span></p>
+                <p id="timer" style="display: none;">Turn Time: <span id="timerValue">0s</span></p>
                 
                 <div id="game-board-container">
                     <div id="game">
                         </div>
                 </div>
+
+                <div id="emoji-bar" style="margin-top: 20px; display: none; justify-content: center; align-items: center; flex-wrap: wrap;">
+                    <h3>Reactions</h3>
+                    <button onclick="sendEmoji('😎')">😎</button>
+                    <button onclick="sendEmoji('😂')">😂</button>
+                    <button onclick="sendEmoji('😡')">😡</button>
+                    <button onclick="sendEmoji('😴')">😴</button>
+                </div>
+                
             </div>
             
             <div id="scoreboard">
@@ -468,14 +546,16 @@
 
     <audio id="menuMusic" loop src="https://assets.mixkit.co/music/preview/mixkit-sci-fi-game-intro-2426.mp3" preload="auto"></audio> 
     <audio id="gameMusic" loop src="https://assets.mixkit.co/music/preview/mixkit-cyber-attack-1335.mp3" preload="auto"></audio> 
+    
     <audio id="clickSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-button-click-1944.mp3" preload="auto"></audio>
     <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-complete-2051.mp3" preload="auto"></audio>
     <audio id="drawSound" src="https://assets.mixkit.co/sfx/preview/mixkit-small-bell-bell-251.mp3" preload="auto"></audio>
-    <audio id="tickingSound" loop src="https://assets.mixkit.co/sfx/preview/mixkit-tick-tock-clock-1033.mp3" preload="auto"></audio>
+
+
     <script>
         
         // --- NEW SPLASH SCREEN HANDLER ---
-        const LOADING_TIME_MS = 1000; 
+        const LOADING_TIME_MS = 1000; // Reduced for testing/quick start
 
         // Fetching elements early
         const splashScreen = document.getElementById('splash-screen');
@@ -485,7 +565,7 @@
         // CRITICAL INITIAL STATE: Make sure splash screen is visible on load.
         splashScreen.classList.add('active'); 
         
-        // --- FIREBASE CONFIGURATION (Unchanged) --- 
+        // --- FIREBASE CONFIGURATION --- 
         const firebaseConfig = { 
             apiKey: "AIzaSyAFUoT40IjaiqH2791QvyNUP6SakHarupY", 
             authDomain: "tic-tac-toe-9e69d.firebaseapp.com", 
@@ -510,7 +590,7 @@
             }
         }
         
-        // --- GAME STATE VARIABLES (Unchanged) ---
+        // --- GAME STATE VARIABLES ---
         let boardSize = 3; 
         let board = Array(boardSize * boardSize).fill(''); 
         let currentPlayer = 'X'; 
@@ -525,10 +605,11 @@
         // --- Timer State Variables ---
         let timerInterval = null; 
         let localMoveStartTime = Date.now();
-        const TIME_LIMIT_SECONDS = 30; // Max time is 30 seconds
+        const TIME_LIMIT_SECONDS = 30;
+        const TIMER_START_SECONDS = 5;
         let autoResetTimeout = null;
         
-        // --- DOM Elements (Updated to include new elements) ---
+        // --- DOM Elements (Updated) ---
         const gameDiv = document.getElementById('game'); 
         const aiControlsDiv = document.getElementById('aiControls'); 
         const scoreX = document.getElementById('scoreX'); 
@@ -541,7 +622,6 @@
         const clickSound = document.getElementById('clickSound');
         const winSound = document.getElementById('winSound');
         const drawSound = document.getElementById('drawSound');
-        const tickingSound = document.getElementById('tickingSound'); 
         // END MUSIC/SOUND ELEMENTS
         const roomIdInput = document.getElementById('roomIdInput'); 
         const gameStatusP = document.getElementById('gameStatus'); 
@@ -561,19 +641,19 @@
         const startGameOnlineBtn = document.getElementById('startGameOnlineBtn');
         const gameTitle = document.getElementById('gameTitle');
         const chatOverlay = document.getElementById('chat-overlay');
+        const emojiBar = document.getElementById('emoji-bar'); // NEW
+        const gameBoardContainer = document.getElementById('game-board-container'); // NEW
 
 
         /**
          * Ensures music state is correctly managed based on the active screen.
-         * @param {HTMLAudioElement} audioElem - The sound element to play.
-         * @param {number} volume - Volume (0.0 to 1.0).
+         * @param {string} screenId - The ID of the screen being activated.
          */
         function playMusic(audioElem, volume = 0.3) {
             if (!isMuted && audioElem && audioElem.paused) {
                 audioElem.volume = volume;
                 audioElem.currentTime = 0; 
-                // CRITICAL: Must catch the Promise rejection for autoplay blocking
-                audioElem.play().catch(e => console.warn("Music play prevented (browser policy):", e));
+                audioElem.play().catch(e => console.log("Audio play prevented:", e));
             }
         }
         
@@ -586,7 +666,7 @@
              if (audioElem && !isMuted) {
                 audioElem.volume = volume;
                 audioElem.currentTime = 0; // Rewind to start for instant playback
-                audioElem.play().catch(e => console.warn("Sound effect play prevented (browser policy):", e));
+                audioElem.play().catch(e => console.log("Sound effect play prevented:", e));
             }
         }
 
@@ -618,7 +698,7 @@
             if (playButton) playButton.style.display = 'none';
             if (loadingSpinner) loadingSpinner.style.display = 'block';
             
-            // CRITICAL AUDIO FIX: This user interaction allows the music to start
+            // Initial music start (menuMusic will start)
             playMusic(menuMusic, 0.3);
 
             // 2. Start the loading sequence
@@ -628,6 +708,7 @@
                 
                 // 4. Force the splash screen off the stack
                 if (splashScreen) {
+                    // Use a slight delay to allow home-screen to fully render/transition in
                     setTimeout(() => {
                         splashScreen.classList.remove('active');
                         splashScreen.style.display = 'none'; 
@@ -640,7 +721,7 @@
             }, LOADING_TIME_MS);
         }
 
-        // --- SCREEN MANAGEMENT (Unchanged) ---
+        // --- SCREEN MANAGEMENT ---
         
         function showScreen(screenId, isGameStart = false) {
             // Hide all full-page screens by removing the 'active' class
@@ -658,8 +739,11 @@
             // Manage fixed buttons (Back, Chat)
             backBtn.style.display = (screenId === 'home-screen' || screenId === 'splash-screen') ? 'none' : 'block';
             
-            // Only show chat button if on game screen AND online mode is active
-            chatOpenBtn.style.display = (screenId === 'game-screen' && mode === 'online' && localPlayer) ? 'block' : 'none';
+            // Manage Chat and Emoji Bar visibility
+            const isOnlineGame = screenId === 'game-screen' && mode === 'online' && localPlayer;
+            chatOpenBtn.style.display = isOnlineGame ? 'block' : 'none';
+            emojiBar.style.display = screenId === 'game-screen' ? 'flex' : 'none';
+
             if (screenId !== 'game-screen') {
                 chatOverlay.classList.remove('visible'); // Hide chat when leaving game screen
             }
@@ -678,7 +762,11 @@
                     gameTitle.textContent = `ONLINE GAME (${localPlayer})`;
                     localScoreboardDiv.style.display = 'none';
                     onlineScoreboardDiv.style.display = 'inline-block';
-                    if (db && roomId) syncGame(); 
+                    if (db && roomId) {
+                        syncGame();
+                        syncChat();
+                        syncReactions(); // NEW: Start listening for reactions
+                    } 
                 }
             } else if (screenId === 'local-config') {
                  mode = 'local';
@@ -722,14 +810,8 @@
             mode = 'local'; 
         }
         
-        // --- Timer Logic (Finalized for Countdown from 30 with Ticking Sound) ---
+        // --- Timer Logic ---
         function handleTimeLimitReached() {
-            // Stop the ticking sound when time runs out
-            if (tickingSound) {
-                tickingSound.pause();
-                tickingSound.currentTime = 0;
-            }
-
             if (!gameActive) { stopTimer(); return; }
             const nextPlayer = currentPlayer === 'X' ? 'O' : 'X';
             if (mode === 'online') {
@@ -751,39 +833,25 @@
 
         function startTimer(startTime) {
             stopTimer(); 
-            timerDisplay.style.display = 'block'; 
-            timerDisplay.classList.remove('timer-warning', 'timer-critical'); // Reset styles
-            
-            // CRITICAL AUDIO: Start ticking sound loop
-            if (!isMuted && tickingSound) {
-                tickingSound.volume = 0.4; // Set a slightly lower volume for background tick
-                tickingSound.loop = true;
-                tickingSound.play().catch(e => console.warn("Ticking sound blocked:", e));
-            }
-
+            timerDisplay.style.color = '#ff8e3c';
             timerInterval = setInterval(() => {
-                // Calculate elapsed time (upwards from 0)
                 const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
-                // Calculate time left (DOWNWARDS from TIME_LIMIT_SECONDS, i.e., 30)
-                const timeLeft = TIME_LIMIT_SECONDS - elapsedSec; 
-
-                if (timeLeft <= 0) {
+                if (elapsedSec >= TIME_LIMIT_SECONDS) {
                     stopTimer();
                     handleTimeLimitReached();
                     return; 
                 }
-                
-                timerValueSpan.textContent = `${timeLeft}s`;
-                
-                // Update styling based on time left
-                if (timeLeft <= 5) {
-                    timerDisplay.classList.add('timer-critical'); 
-                    timerDisplay.classList.remove('timer-warning');
-                } else if (timeLeft <= 15) {
-                    timerDisplay.classList.add('timer-warning'); 
-                    timerDisplay.classList.remove('timer-critical');
+                if (elapsedSec >= TIMER_START_SECONDS) {
+                    timerDisplay.style.display = 'block';
+                    timerValueSpan.textContent = `${elapsedSec}s`;
+                    timerValueSpan.classList.remove('timer-warning', 'timer-critical');
+                    if (elapsedSec >= 25) {
+                        timerDisplay.style.color = '#f05a7f'; 
+                    } else if (elapsedSec >= 15) {
+                        timerDisplay.style.color = '#ff8e3c'; 
+                    }
                 } else {
-                    timerDisplay.classList.remove('timer-warning', 'timer-critical');
+                    timerDisplay.style.display = 'none';
                 }
             }, 1000);
         }
@@ -792,14 +860,8 @@
             if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
             if (autoResetTimeout) { clearTimeout(autoResetTimeout); autoResetTimeout = null; }
             timerDisplay.style.display = 'none';
-            timerValueSpan.textContent = `${TIME_LIMIT_SECONDS}s`; // Reset to 30
-            timerDisplay.classList.remove('timer-warning', 'timer-critical');
-            
-            // CRITICAL AUDIO: Stop ticking sound
-            if (tickingSound) {
-                tickingSound.pause();
-                tickingSound.currentTime = 0;
-            }
+            timerValueSpan.textContent = '0s';
+            timerDisplay.style.color = '#ff8e3c'; 
         }
 
         function resetLocalTimer() {
@@ -810,7 +872,69 @@
             }
         }
         
-        // --- Core Game Logic Functions (Rest Unchanged) ---
+        // --- WINNING ANIMATION LOGIC (NEW) ---
+
+        /**
+         * Draws the winning strike line.
+         * @param {Array<number>} winningIndices - The indices of the winning cells.
+         * @param {string} player - The winning player ('X' or 'O').
+         */
+        function drawStrikeLine(winningIndices, player) {
+            // 1. Remove previous strike
+            let oldStrike = gameDiv.querySelector('.strike');
+            if (oldStrike) oldStrike.remove();
+            
+            if (!winningIndices || winningIndices.length === 0) return;
+
+            // 2. Determine line orientation and position
+            const [i1, i2, i3] = winningIndices;
+            const cell1 = gameDiv.querySelector(`.cell[data-index="${i1}"]`);
+            const cell3 = gameDiv.querySelector(`.cell[data-index="${i3}"]`);
+            
+            if (!cell1 || !cell3) return;
+
+            const rect1 = cell1.getBoundingClientRect();
+            const rect3 = cell3.getBoundingClientRect();
+            const containerRect = gameDiv.getBoundingClientRect();
+
+            // Calculate center points relative to the gameDiv
+            const x1 = rect1.left + rect1.width / 2 - containerRect.left;
+            const y1 = rect1.top + rect1.height / 2 - containerRect.top;
+            const x2 = rect3.left + rect3.width / 2 - containerRect.left;
+            const y2 = rect3.top + rect3.height / 2 - containerRect.top;
+            
+            // Calculate distance (length) and angle
+            const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
+
+            // 3. Create and style the strike container and line
+            const strikeDiv = document.createElement('div');
+            strikeDiv.className = 'strike';
+            
+            const line = document.createElement('div');
+            line.className = 'strike-line';
+            line.style.backgroundColor = player === 'X' ? 'var(--color-primary-accent)' : 'var(--color-secondary-accent)';
+            line.style.boxShadow = `0 0 10px ${player === 'X' ? 'var(--color-primary-accent)' : 'var(--color-secondary-accent)'}`;
+            
+            // Apply positioning and transform for the line
+            line.style.width = `${length + 10}px`; // +10px buffer
+            line.style.height = `8px`;
+            line.style.left = `${x1}px`;
+            line.style.top = `${y1}px`;
+            line.style.transformOrigin = '0 0';
+            line.style.transform = `translate(-4px, -4px) rotate(${angle}deg)`; // Center line on points
+
+            strikeDiv.appendChild(line);
+            gameDiv.appendChild(strikeDiv); // Append to gameDiv to ensure it's positioned over cells
+            
+            // Animate it in
+            setTimeout(() => {
+                strikeDiv.classList.add('active');
+            }, 50); 
+        }
+
+        
+        // --- Core Game Logic Functions ---
         function getWinLength(size) {
             return size;
         }
@@ -891,6 +1015,7 @@
         
         function drawBoard() { 
             gameDiv.innerHTML = ''; 
+            // 1. Check for win result before drawing
             const finalResult = !gameActive ? checkWinner(board, false) : {};
             
             board.forEach((val, i) => { 
@@ -906,7 +1031,7 @@
                 gameDiv.appendChild(cell); 
             }); 
             
-            // Set grid properties dynamically (moved here for responsive updates)
+            // Set grid properties dynamically
             if (gameDiv && boardSize) {
                 gameDiv.style.setProperty('--board-size', boardSize);
             }
@@ -915,17 +1040,25 @@
                 if (mode === 'online' && localPlayer) { 
                     if (!gameActive) { 
                         const result = checkWinner(board, false);
-                        gameStatusP.textContent = `GAME OVER! ${result.winner === 'Draw' ? 'IT\'S A DRAW!' : `<strong>${result.winner}</strong> WINS!`}. Starting new round in 3 seconds...`; 
+                        gameStatusP.innerHTML = `GAME OVER! ${result.winner === 'Draw' ? 'IT\'S A DRAW!' : `<strong>${result.winner}</strong> WINS!`}. Starting new round in 3 seconds...`; 
                         // Sound effect on online win/draw
                         if(result.winner === 'Draw') playSoundEffect(drawSound);
                         else playSoundEffect(winSound);
                         stopTimer(); 
                     } else { 
                         const turnMessage = (currentPlayer === localPlayer) ? 'YOUR TURN!' : `${currentPlayer}'S TURN.`;
-                        gameStatusP.textContent = `YOU ARE <strong>${localPlayer}</strong>. IT IS ${turnMessage}`; 
+                        gameStatusP.innerHTML = `YOU ARE <strong>${localPlayer}</strong>. IT IS ${turnMessage}`; 
                     } 
                 } else if (gameActive) {
-                    gameStatusP.textContent = `<strong>${currentPlayer}</strong>'S TURN.`;
+                    gameStatusP.innerHTML = `<strong>${currentPlayer}</strong>'S TURN.`;
+                }
+
+                // 2. Draw the strike line if the game is over with a winner
+                if (!gameActive && finalResult.winner && finalResult.winner !== 'Draw') {
+                    drawStrikeLine(finalResult.winningIndices, finalResult.winner);
+                } else {
+                    let oldStrike = gameDiv.querySelector('.strike');
+                    if (oldStrike) oldStrike.remove(); // Remove strike on reset/draw
                 }
             }
         } 
@@ -938,20 +1071,20 @@
 
             if (mode === 'online') { 
                 if (currentPlayer !== localPlayer) { 
-                    gameStatusP.textContent = `IT IS NOT YOUR TURN (${currentPlayer}'S TURN).`; 
+                    gameStatusP.innerHTML = `IT IS NOT YOUR TURN (${currentPlayer}'S TURN).`; 
                     return; 
                 } 
                 handleOnlineMove(index); 
             } else { 
                 board[index] = currentPlayer; 
-                const result = checkWinner(board, true);
+                const result = checkWinner(board, true); // Sets gameActive=false internally
                 
                 if (result.winner) {
                     updateLocalScore(result.winner);
                     // Play win/draw sound
                     if(result.winner === 'Draw') playSoundEffect(drawSound);
                     else playSoundEffect(winSound);
-                    drawBoard();
+                    drawBoard(); // Now calls drawStrikeLine if there's a winner
                     setTimeout(resetGame, 2000);
                 } else {
                     currentPlayer = currentPlayer === 'X' ? 'O' : 'X'; 
@@ -985,16 +1118,21 @@
                     }
                     winningIndices.push(index(nr, nc));
                 }
-                return { winner: player, winningIndices };
+                if (winningIndices.length === N) {
+                    return { winner: player, winningIndices };
+                }
+                return null;
             };
 
             const directions = [
                 [0, 1], [1, 0], [1, 1], [1, -1] 
             ];
 
+            // Iterate over all cells
             for (let r = 0; r < size; r++) {
                 for (let c = 0; c < size; c++) {
                     if (currentBoard[index(r, c)]) {
+                        // Check lines starting from this cell
                         for (let [dr, dc] of directions) {
                             const result = checkLine(r, c, dr, dc);
                             if (result) {
@@ -1031,6 +1169,10 @@
 
         function resetGame() { 
             stopTimer(); 
+            // Remove strike line on reset
+            let oldStrike = gameDiv.querySelector('.strike');
+            if (oldStrike) oldStrike.remove();
+            
             const newBoardLength = boardSize * boardSize;
             board = Array(newBoardLength).fill(''); 
             currentPlayer = 'X'; 
@@ -1064,6 +1206,8 @@
             scoreDraws.textContent = '0'; 
         } 
         
+        // --- CHAT AND EMOJI LOGIC ---
+
         function sendChatMessage() {
             if (!db || !roomId || !localPlayer) return;
 
@@ -1099,6 +1243,84 @@
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             });
         }
+        
+        function sendEmoji(emoji) {
+            if (!db || !roomId || !localPlayer) {
+                 // Local mode feedback
+                 gameStatusP.innerHTML = `${currentPlayer} sent: ${emoji}`;
+                 showReaction(currentPlayer, emoji);
+                 setTimeout(() => { 
+                     if(gameActive) gameStatusP.innerHTML = `<strong>${currentPlayer}</strong>'S TURN.`;
+                 }, 1500);
+                 return;
+            }
+
+            // Online mode: Use Firebase to broadcast the emoji reaction
+            const reactionRef = db.ref('games/' + roomId + '/reaction');
+            reactionRef.set({
+                sender: localPlayer,
+                emoji: emoji,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            // Display locally immediately
+            showReaction(localPlayer, emoji);
+        }
+
+        function syncReactions() {
+            if (!db || !roomId) return;
+            const reactionRef = db.ref('games/' + roomId + '/reaction');
+
+            reactionRef.off();
+
+            reactionRef.on('value', snapshot => {
+                const reactionData = snapshot.val();
+                if (reactionData && reactionData.sender !== localPlayer) {
+                    showReaction(reactionData.sender, reactionData.emoji);
+                }
+            });
+        }
+        
+        /**
+         * Displays the emoji reaction temporarily on screen.
+         */
+        function showReaction(sender, emoji) {
+            const reactionElement = document.createElement('div');
+            reactionElement.textContent = emoji;
+            reactionElement.style.position = 'absolute';
+            reactionElement.style.fontSize = '3rem';
+            reactionElement.style.zIndex = '100';
+            reactionElement.style.pointerEvents = 'none';
+            reactionElement.style.opacity = '0';
+            reactionElement.style.transition = 'all 0.5s ease-out';
+            reactionElement.style.top = '50%';
+            reactionElement.style.left = '50%';
+            reactionElement.style.transform = 'translate(-50%, -50%)';
+            
+            // Color glow based on player
+            reactionElement.style.textShadow = `0 0 10px ${sender === 'X' ? 'var(--color-primary-accent)' : 'var(--color-secondary-accent)'}`;
+
+            // Append to the board container (gameDiv)
+            gameDiv.appendChild(reactionElement);
+
+            // Animate it
+            setTimeout(() => {
+                reactionElement.style.opacity = '1';
+                reactionElement.style.transform = 'translate(-50%, -100%) scale(1.2)';
+            }, 50);
+
+            // Fade it out and remove
+            setTimeout(() => {
+                reactionElement.style.opacity = '0';
+                reactionElement.style.transform = 'translate(-50%, -200%) scale(0.8)';
+            }, 1000);
+
+            setTimeout(() => {
+                reactionElement.remove();
+            }, 1500);
+        }
+
+        // --- ONLINE GAME / FIREBASE LOGIC ---
 
         function generateRoomId() { 
             return Math.random().toString(36).substring(2, 8).toUpperCase(); 
@@ -1246,6 +1468,8 @@
             stopTimer(); 
         } 
 
+        // --- AI LOGIC (MINIMAX) ---
+
         const scores = { 'O': 10, 'X': -10, 'Draw': 0 }; 
 
         function getEmptyIndices(currentBoard) {
@@ -1342,18 +1566,16 @@
             if (clickSound) clickSound.muted = isMuted; 
             if (winSound) winSound.muted = isMuted;     
             if (drawSound) drawSound.muted = isMuted;   
-            if (tickingSound) tickingSound.muted = isMuted; 
             
             // If unmuting, ensure the correct track starts playing
             if (!isMuted) {
                 manageMusic(currentScreen);
-                // The timer sound is managed by startTimer/stopTimer, ensure it's re-checked next time startTimer is called
             }
             
             document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊'; 
         } 
         
-        // --- JAVASCRIPT FIX FOR MOBILE VH SCROLLING (Unchanged) ---
+        // --- JAVASCRIPT FIX FOR MOBILE VH SCROLLING ---
         let resizeTimer; 
 
         function setAppHeight() {

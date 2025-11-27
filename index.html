@@ -89,7 +89,6 @@
         /* --- CRITICAL RENDER FIX FOR CHROME MOBILE (UPDATED) --- */
         .screen-content {
             flex-grow: 1; 
-            /* REMOVED: overflow-y: auto; padding-top: 40px; padding-bottom: 50px; */ 
             padding: 0; /* Set to 0 here, and handle padding inside the screens */
             box-sizing: border-box;
             /* Force the content area to manage vertical space correctly */
@@ -250,19 +249,24 @@
         #backBtn { left: 10px; display: none; }
         #chatOpenBtn { right: 100px; display: none; } 
 
-        /* --- GAME BOARD --- */
+        /* --- GAME BOARD (STATIC GRID DEFINITION - CRITICAL FIX) --- */
         #game { 
-            /* IMPORTANT: Removed display: grid; from here. It is now set in drawBoard() via JS. */
+            /* 1. Static Grid Definition to prevent race conditions on mobile */
+            display: grid; 
+            grid-template-columns: repeat(var(--board-size), 1fr);
+            
             grid-gap: 8px; 
             padding: 10px;
             background: var(--color-panel-bg); 
             border-radius: 12px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.3);
-            grid-template-columns: repeat(var(--board-size), 1fr);
+            
             width: 95%; 
             max-width: 450px;
-            margin: 20px auto 0 auto; /* Keep auto margins for centering */
+            margin: 20px auto 0 auto; 
         } 
+        /* --- END STATIC GRID DEFINITION --- */
+        
         .cell { 
             aspect-ratio: 1 / 1; 
             display: flex;
@@ -806,7 +810,7 @@
             }, LOADING_TIME_MS);
         }
 
-        // --- SCREEN MANAGEMENT (UPDATED FOR CHROME LAYOUT FIX) ---
+        // --- SCREEN MANAGEMENT (UPDATED FOR FINAL FIX) ---
         
         function showScreen(screenId, isGameStart = false) {
             document.querySelectorAll('.screen').forEach(screen => {
@@ -846,24 +850,9 @@
                     updatePlayerNamesDisplay();
                     gameTitle.textContent = mode === 'local' ? 'LOCAL FRIEND GAME' : `AI GAME (${aiDifficulty.toUpperCase()})`;
                     
-                    // --- CRITICAL FIX: DOUBLE DELAY AND FORCED LAYOUT ---
-                    // This handles the persistent issue in Chrome where the container size is not ready
-                    // when setBoardSize() runs.
-                    setTimeout(() => {
-                        // Step 1: Force synchronous layout recalculation in Chrome
-                        const container = document.getElementById('game-board-container');
-                        if (container) {
-                            // Reading offsetHeight forces the browser to calculate the layout immediately
-                            void container.offsetHeight; 
-                        }
-                        
-                        // Step 2: Use a second delay to ensure the container dimensions are stable
-                        setTimeout(() => {
-                            setBoardSize(boardSize, null, true, currentScreen); 
-                            resetGame();
-                        }, 50); // Second 50ms delay
-                        
-                    }, 10); // Initial 10ms delay to allow screen.classList.add('active') to apply
+                    // NEW SIMPLIFIED LOGIC: CSS handles the layout, we just apply the size and reset.
+                    setBoardSize(boardSize, null, true, currentScreen); 
+                    resetGame();
                     // ----------------------------------------
                     
                 } else if (mode === 'online' && localPlayer) {
@@ -1013,18 +1002,19 @@
                 board = Array(newBoardLength).fill('');
             }
             
-            gameDiv.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+            // The grid template columns is now set in static CSS using the variable
+            gameDiv.style.setProperty('--board-size', size);
             
             let cellSize, fontSize;
             // The constraint of 500px or 95% of screen width keeps the board centered and square.
             const containerWidth = Math.min(window.innerWidth * 0.95, 500); 
             // Calculated cell size based on container width and board size, compensating for grid gap (8px).
+            // A small adjustment to the calculation for visual precision on mobile
             cellSize = (containerWidth / size) - (size === 3 ? 5 : 4); 
             fontSize = cellSize / 2.5; 
             
             gameDiv.style.setProperty('--cell-size', `${cellSize}px`);
             gameDiv.style.setProperty('--font-size', `${fontSize}px`);
-            gameDiv.style.setProperty('--board-size', size);
             
             // --- UI/Button Activation Logic ---
             const sizeControlsId = location === 'local-config' ? 'boardSizeControls' : (location === 'ai-config' ? 'aiBoardSizeControls' : 'onlineBoardSizeControls');
@@ -1069,8 +1059,7 @@
         
         function drawBoard() { 
             gameDiv.innerHTML = ''; 
-            // CRITICAL FIX: Re-enable grid display here after the screen is active
-            gameDiv.style.display = 'grid'; 
+            // REMOVED: gameDiv.style.display = 'grid'; // Grid display is now static in CSS
 
             const finalResult = !gameActive ? checkWinner(board, false) : {};
             

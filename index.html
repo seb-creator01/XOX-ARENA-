@@ -109,8 +109,11 @@
         }
 
         #game-board-container {
-            /* CRITICAL CHANGE: Take up remaining vertical space */
+            /* CRITICAL CHANGE 1: Take up remaining vertical space */
             flex-grow: 1; 
+            
+            /* CRITICAL FIX 1: Allow container to shrink correctly */
+            min-height: 0; 
             
             width: 100%; 
             max-width: 450px; 
@@ -120,14 +123,6 @@
             justify-content: center;
             align-items: center; 
             overflow: hidden; 
-            
-            /* CRITICAL: Force the inner board to fill the available space */
-            #game {
-                /* Ensure the board maintains its aspect ratio within this flex container */
-                width: 100%; 
-                max-width: 450px;
-                height: auto; /* Let the height be determined by the grid content */
-            }
         }
 
         #scoreboard {
@@ -270,9 +265,11 @@
             display: grid; 
             grid-template-columns: repeat(var(--board-size), 1fr);
             
-            /* CRITICAL FIX: Ensure the inner grid fills its space */
-            width: 100%; 
+            /* CRITICAL FIX 2: Use min() to ensure the board is a square that fits the smallest dimension 
+               The 350px accounts for the approximate height of header, status, scoreboard, and footer. */
+            width: min(100%, 100vh - 350px); 
             max-width: 450px;
+            max-height: 450px; 
             
             grid-gap: 8px; 
             padding: 10px;

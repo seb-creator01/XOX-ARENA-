@@ -827,10 +827,18 @@
                     updatePlayerNamesDisplay();
                     gameTitle.textContent = mode === 'local' ? 'LOCAL FRIEND GAME' : `AI GAME (${aiDifficulty.toUpperCase()})`;
                     
-                    // --- STRONGER CRITICAL FIX WITH DELAY ---
+                    // --- STRONGER CRITICAL FIX WITH DELAY AND RECALCULATION ---
                     // Delay the board sizing and reset to ensure the browser has finished
                     // rendering the new 'game-screen' dimensions.
                     setTimeout(() => {
+                        
+                        // CRITICAL: Force a synchronous layout recalculation in Chrome
+                        // by reading an offset property on the game board container.
+                        const container = document.getElementById('game-board-container');
+                        if (container) {
+                            void container.offsetHeight; // Forces layout recalculation
+                        }
+                        
                         setBoardSize(boardSize, null, true, currentScreen); 
                         resetGame();
                     }, 50); // Small 50ms delay
@@ -1119,7 +1127,7 @@
             const N = size; 
 
             const index = (r, c) => r * size + c;
-            const isValid = (r, c) => r >= 0 && r < size && c >= 0 && c < size;
+            const isValid = (r, c) => r >= 0 && c >= 0 && r < size && c < size;
 
             const checkLine = (r, c, dr, dc) => {
                 const player = currentBoard[index(r, c)];

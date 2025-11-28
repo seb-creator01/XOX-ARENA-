@@ -82,6 +82,7 @@
             padding: 0 20px; 
             box-sizing: border-box;
             background: var(--color-dark-bg); 
+            /* Changed to flex-direction: column to stack content */
             flex-direction: column;
             animation: fadeIn 0.3s ease-in-out;
             z-index: 100; 
@@ -108,6 +109,8 @@
             padding-bottom: 10px;
             box-sizing: border-box;
             overflow-y: hidden; /* Prevent scrolling inside the content */
+            /* ✅ FIX 1a: Use flex-grow to ensure it takes 100% of the 1fr vertical space */
+            flex-grow: 1; 
         }
 
         /* Elements inside the game screen that are *not* the board container */
@@ -119,25 +122,26 @@
             width: 95%;
             max-width: 450px;
             margin-bottom: 5px; 
+            /* Ensure these elements don't collapse */
+            flex-shrink: 0;
         }
         
         /* CRITICAL RENDER FIX: BOARD CONTAINER (UPDATED) */
         #game-board-container {
             width: 100%; 
             max-width: 450px; 
+            /* ✅ FIX 1b: This is the main fix. It takes up ALL remaining vertical space. */
+            flex-grow: 1; 
+            
+            /* ✅ FIX 1c: Use Flexbox to vertically center the board inside this remaining space */
             display: flex; 
             justify-content: center;
             align-items: center; 
+            
             overflow: hidden; 
             min-width: min(100%, 450px);
             margin: 5px 0; 
-            
-            /* CRITICAL FIX 4: REMOVED FIXED HEIGHT SUBTRACTION. 
-               The height is now determined by the 100% height of the parent flex container, 
-               and the board's size is controlled by JS's dynamic calculation. 
-            */
-            /* max-height: calc((var(--vh, 1vh) * 100) - 310px); <-- REMOVED! */
-            height: 100%; 
+            /* Removed the problematic height/max-height properties */
         }
 
         /* --- GAME BOARD (DYNAMIC GRID DEFINITION) --- */
@@ -153,8 +157,9 @@
             /* CRITICAL FIX 3: JS sets width, aspect-ratio enforces square */
             width: var(--dynamic-board-size); 
             aspect-ratio: 1 / 1; 
-            max-width: 450px; 
-            max-height: 100%; /* Ensure it respects the container max-height */
+            max-width: 100%; /* Respect the 450px container width */
+            /* ✅ FIX 1d: Ensure the board respects the AVAILABLE height */
+            max-height: 100%; 
         } 
         
         .cell { 
@@ -216,6 +221,8 @@
             background: var(--color-panel-bg);
             box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
             z-index: 1001; 
+            /* Ensure footer doesn't shrink */
+            flex-shrink: 0;
         } 
         
         /* --- BUTTONS & INPUTS --- */
@@ -1053,51 +1060,25 @@
         // --- CRITICAL FIX 2: Updated calculateAndSetBoardSize for true dynamic sizing ---
         function calculateAndSetBoardSize() {
             if (currentScreen !== 'game-screen' || !gameBoardContainer || !gameDiv) return;
-            
-            // 1. Get total height of the viewport
-            const totalViewportHeight = window.innerHeight; // Get the raw inner height
-            
-            // 2. Measure the space taken by elements *outside* the board container
-            // Ensure elements are visible/in flow before measuring
-            
-            // Measure fixed controls (approx)
-            const backBtnHeight = backBtn.offsetHeight;
-            const muteBtnHeight = document.getElementById('muteBtn').offsetHeight;
-            const fixedControlsHeight = Math.max(backBtnHeight, muteBtnHeight) + 10; // Max of the two, plus some margin
 
-            // Measure elements above and below the board container
-            const headerHeight = gameInfoHeader.offsetHeight + 10; // + 10px margin-top from h2
-            const scoreboardHeight = scoreboardDiv.offsetHeight;
-            const footerHeight = document.querySelector('footer').offsetHeight;
-            
-            // Screen content padding is 10px top + 10px bottom
-            const screenContentPadding = 20; 
-            
-            // 4. Calculate the maximum available height for the board *and* its container
-            const totalUsedVerticalSpace = headerHeight + scoreboardHeight + footerHeight + fixedControlsHeight + screenContentPadding;
-            
-            const maxAvailableBoardHeight = totalViewportHeight - totalUsedVerticalSpace;
+            // 1. Get the actual dimensions of the game-board-container
+            // Since the container has flex-grow: 1, this now reliably reflects the space available 
+            // after header/footer/scoreboard are rendered.
+            const rect = gameBoardContainer.getBoundingClientRect();
+            const containerWidth = rect.width;
+            const containerHeight = rect.height;
 
-            // 5. Get the width of the container (which respects the max-width: 450px)
-            const containerWidth = gameBoardContainer.getBoundingClientRect().width;
+            // 2. Determine the side length for a square board that fits within the container
+            let finalBoardSize = Math.min(containerWidth, containerHeight);
             
-            // 6. Determine the final size by taking the minimum of the calculated height and the width
-            // This ensures the board is always square and fits the smallest dimension
-            let finalBoardContainerSize = Math.min(containerWidth, maxAvailableBoardHeight);
-            
-            // 7. Apply final size constraints 
-            finalBoardContainerSize = Math.min(finalBoardContainerSize, 450); // Respect max 450px constraint
-
-            // 8. Adjust for board padding (10px on each side = 20px total)
+            // 3. Adjust for board padding (10px on each side = 20px total)
             const boardPadding = 20; 
-            let finalBoardSize = finalBoardContainerSize - boardPadding; 
-            
-            // 9. Ensure it's not negative and set the CSS variables for the game board
-            finalBoardSize = Math.max(0, finalBoardSize);
+            finalBoardSize = Math.max(0, finalBoardSize - boardPadding);
 
+            // 4. Set the CSS variables for the game board
             gameDiv.style.setProperty('--dynamic-board-size', `${finalBoardSize}px`);
 
-            // 10. Calculate cell font size based on the final board size
+            // 5. Calculate cell font size (Unchanged logic, just simplified variable names)
             const size = boardSize;
             const gapSpace = 8 * (size - 1);
             const cellSideLength = (finalBoardSize - gapSpace) / size;

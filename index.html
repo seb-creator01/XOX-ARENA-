@@ -98,11 +98,11 @@
             display: flex;
             flex-direction: column;
             align-items: center; 
-            /* This is the key: it takes 100% of the screen height MINUS the fixed footer */
-            height: 100%; 
+            /* REMOVED: height: 100%; -- Let flex-grow handle the height */
             padding-top: 10px; 
             box-sizing: border-box;
             overflow-y: hidden; 
+            flex-grow: 1; /* Ensure content fills the screen */
         }
 
         /* Elements that should NOT take up remaining space */
@@ -904,50 +904,31 @@
             }
         }
         
-        /* * CRITICAL FIX 3: Dynamic board sizing to fit available vertical space
-         * This revised version uses a more aggressive buffer and dynamic element height calculations.
+        /* * CRITICAL FIX: Simplified Dynamic Board Sizing
+         * Relies on CSS Flexbox to correctly size the board container, 
+         * and then sets the board size based on that container's actual dimensions.
          */
         function calculateAndSetBoardSize() {
             if (currentScreen !== 'game-screen' || !gameBoardContainer || !gameDiv) return;
             
-            // 1. Get the stable viewport height
-            const totalViewportHeight = document.documentElement.clientHeight;
-            
-            // 2. Calculate the fixed height of all elements above and below the board container.
-            
-            // Get the element heights (including padding/borders/margins if present in their CSS, due to offsetHeight)
-            const headerHeight = gameInfoHeader.offsetHeight;
-            const postGameHeight = postGameActionsDiv.offsetHeight;
-            const scoreboardHeight = scoreboardDiv.offsetHeight;
-            const footerHeight = document.querySelector('footer').offsetHeight;
+            // 1. Get the actual dimensions of the container which Flexbox has sized
+            const availableWidth = gameBoardContainer.offsetWidth;
+            const availableHeight = gameBoardContainer.offsetHeight; // This should now be reliable
 
-            // Estimate the margins and padding applied to the main container
-            // We use a margin buffer of 10px top/bottom on the .screen-content
-            const containerVerticalPadding = 20; // 10px on #game-screen .screen-content top + 10px bottom
-
-            // Total vertical space taken by elements *other* than the board container
-            const fixedVerticalSpace = headerHeight + postGameHeight + scoreboardHeight + footerHeight + containerVerticalPadding;
-            
-            // 3. Determine the available height for the board container (#game-board-container)
-            // Use a SAFETY BUFFER to account for unreliable browser UI (address bar changes, etc.)
-            const safetyBuffer = 30; // 30px buffer should be sufficient for mobile UI changes
-            const availableHeight = totalViewportHeight - fixedVerticalSpace - safetyBuffer;
-            
-            // 4. The board must be square, so take the minimum of available width and height
-            const availableWidth = gameBoardContainer.offsetWidth; // Use the max-width: 450px container's actual width
+            // 2. The board must be square, so take the minimum of available width and height
             let finalBoardSize = Math.min(availableWidth, availableHeight);
             
-            // 5. Clamp the size to a reasonable maximum (450px)
+            // 3. Clamp the size to a reasonable maximum (450px)
             finalBoardSize = Math.min(finalBoardSize, 450); 
             
             // Adjust for board padding (10px on each side = 20px total)
             const boardPadding = 20; 
             finalBoardSize = Math.max(0, finalBoardSize - boardPadding);
 
-            // Set the CSS variables for the game board
+            // 4. Set the CSS variables for the game board
             gameDiv.style.setProperty('--dynamic-board-size', `${finalBoardSize}px`);
 
-            // Calculate cell font size based on the final board size
+            // 5. Calculate cell font size (unchanged)
             const size = boardSize;
             const gapSpace = 8 * (size - 1);
             const cellSideLength = (finalBoardSize - gapSpace) / size;

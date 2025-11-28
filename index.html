@@ -119,11 +119,13 @@
             width: 95%;
             max-width: 450px;
             margin-bottom: 5px; 
+            flex-shrink: 0; /* CRITICAL FIX 1: Ensure these fixed-height elements don't shrink */
         }
         
         /* CRITICAL RENDER FIX: BOARD CONTAINER */
         #game-board-container {
-            /* REMOVED: flex-grow: 1; min-height: 0; */
+            flex-grow: 1; /* CRITICAL FIX 2: Allow it to take up all available vertical space */
+            min-height: 0; /* CRITICAL FIX 3: Essential for flex-grow to work properly in a column container */
             
             width: 100%; 
             max-width: 450px; 
@@ -134,11 +136,8 @@
             min-width: min(100%, 450px);
             margin: 5px 0; 
             
-            /* CRITICAL FIX 4: Explicitly set max height based on viewport 
-               - Increased to 310px for safer fit across various mobile browsers/UIs.
-            */
-            max-height: calc((var(--vh, 1vh) * 100) - 310px); 
-            height: 100%; /* Default to 100% of available space */
+            /* max-height constraint is now handled automatically by flex-grow: 1 */
+            height: 100%; 
         }
 
         /* --- GAME BOARD (DYNAMIC GRID DEFINITION) --- */
@@ -151,7 +150,7 @@
             border-radius: 12px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.3);
             
-            /* CRITICAL FIX 3: JS sets width, aspect-ratio enforces square */
+            /* CRITICAL FIX 4: JS sets width, aspect-ratio enforces square */
             width: var(--dynamic-board-size); 
             aspect-ratio: 1 / 1; 
             max-width: 450px; 
@@ -612,7 +611,7 @@
         <p>Developed by <b>Seb-Creations</b> | XOX Arena</p>
     </footer>
 
-    <audio id="menuMusic" loop src="https://assets.mixkit.co/music/preview/mixkit-sci-fi-game-intro-2426.mpload="auto"></audio> 
+    <audio id="menuMusic" loop src="https://assets.mixkit.co/music/preview/mixkit-sci-fi-game-intro-2426.mp3" preload="auto"></audio> 
     <audio id="gameMusic" loop src="https://assets.mixkit.co/music/preview/mixkit-cyber-attack-1335.mp3" preload="auto"></audio> 
     
     <audio id="clickSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-button-click-1944.mp3" preload="auto"></audio>

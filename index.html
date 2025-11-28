@@ -21,7 +21,7 @@
             
             /* CSS Variable set by JS for reliable mobile viewport height */
             --vh: 1vh;
-            --dynamic-board-size: 300px; /* Default, will be set by JS */
+            --font-size: 3rem; /* Default, set by JS based on rendered size */
         }
 
         /* --- LIGHT THEME --- */
@@ -98,14 +98,14 @@
             display: flex;
             flex-direction: column;
             align-items: center; 
-            /* REMOVED: height: 100%; -- Let flex-grow handle the height */
             padding-top: 10px; 
             box-sizing: border-box;
-            overflow-y: hidden; 
+            overflow: hidden; 
             flex-grow: 1; /* Ensure content fills the screen */
+            min-height: 0; /* Ensures flex-grow works */
         }
 
-        /* Elements that should NOT take up remaining space */
+        /* Elements that should NOT take up remaining space (Fixed Space) */
         #game-info-header,
         #player-names-display, 
         #game-info,
@@ -119,7 +119,7 @@
         
         /* CRITICAL RENDER FIX: BOARD CONTAINER */
         #game-board-container {
-            flex-grow: 1; /* **THIS IS THE CRITICAL LINE:** Takes all available remaining height */
+            flex-grow: 1; /* **CRITICAL:** Takes all available remaining height */
             min-height: 0; /* Required for flex-grow to work correctly */
             width: 100%; 
             max-width: 450px; 
@@ -128,6 +128,7 @@
             align-items: center; 
             overflow: hidden; 
             margin: 5px 0; 
+            padding: 10px; /* Add padding here so it's inside the flex container */
         }
 
         /* --- GAME BOARD (DYNAMIC GRID DEFINITION) --- */
@@ -135,16 +136,16 @@
             display: grid; 
             grid-template-columns: repeat(var(--board-size), 1fr);
             grid-gap: 8px; 
-            padding: 10px;
             background: var(--color-panel-bg); 
             border-radius: 12px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.3);
             
-            /* CRITICAL FIX 3: Use JS-set variable for width and enforce square ratio */
-            width: var(--dynamic-board-size); 
-            aspect-ratio: 1 / 1; 
-            max-width: 450px; 
-            max-height: 100%; 
+            /* CRITICAL FIX: Pure CSS sizing */
+            width: min(100%, 100vh); /* Take minimum of available width or viewport height (max 450px from parent) */
+            height: 100%;
+            aspect-ratio: 1 / 1; /* Enforce square */
+            max-width: 450px;
+            max-height: 100%;
         } 
         
         .cell { 
@@ -239,7 +240,6 @@
 
         /* --- FOOTER (MODIFIED) --- */
         footer { 
-            /* CRITICAL FIX: Removed position: fixed */
             width: 100%;
             max-width: 600px;
             padding: 5px 0;
@@ -462,6 +462,7 @@
                     <p id="timer">Turn Time: <span id="timerValue">30s</span></p> 
                 </div>
             </header>
+            
             <div id="game-board-container">
                 <div id="game">
                 </div>
@@ -627,7 +628,6 @@
             } else {
                 appBody.classList.remove('light-theme');
                 darkBtn.classList.add('active');
-                lightBtn.classList.remove('active');
             }
         }
         
@@ -720,7 +720,7 @@
                     gameTitle.textContent = mode === 'local' ? 'LOCAL FRIEND GAME' : `AI GAME (${aiDifficulty.toUpperCase()})`;
                     
                     setBoardSize(boardSize, null, true, currentScreen); 
-                    calculateAndSetBoardSize(); 
+                    // No need to call calculateAndSetBoardSize() here, drawBoard() calls it
                     resetGame();
                     
                 } else if (mode === 'online' && localPlayer) {
@@ -729,7 +729,7 @@
                     onlineScoreboardDiv.style.display = 'inline-block';
                     document.getElementById('onlinePlayerName').disabled = true;
                     if (db && roomId) syncGame(); 
-                    calculateAndSetBoardSize(); 
+                    // No need to call calculateAndSetBoardSize() here, drawBoard() calls it
                 }
             } else if (screenId === 'local-config') {
                  mode = 'local';
@@ -865,6 +865,7 @@
                 board = Array(newBoardLength).fill('');
             }
             
+            // This is the only place we need to set the CSS variable for the grid columns
             gameDiv.style.setProperty('--board-size', size);
             
             // --- UI/Button Activation Logic ---
@@ -881,16 +882,11 @@
                 lobbyBoardSizeSpan.textContent = `${size}x${size}`;
             }
             
-            // CRITICAL: Call the dynamic sizing function after setting board-size variable
+            // CRITICAL: Always redraw/re-size when size changes or we enter the game screen
             if (currentScreen === 'game-screen' || skipReset) {
-                 calculateAndSetBoardSize(); 
+                 drawBoard(); 
             }
 
-            if (skipReset) {
-                drawBoard(); 
-                return;
-            }
-            
             if (location !== 'online-lobby' && mode !== 'online') {
                 drawBoard();
             } else if (location === 'online-lobby' && mode === 'online' && roomId && localPlayer) {
@@ -904,43 +900,33 @@
             }
         }
         
-        /* * CRITICAL FIX: Simplified Dynamic Board Sizing
-         * Relies on CSS Flexbox to correctly size the board container, 
-         * and then sets the board size based on that container's actual dimensions.
+        /* * CRITICAL FIX: Only calculate font size based on the final, rendered board size
+         * The board size itself is now determined purely by CSS Flexbox and aspect-ratio.
          */
-        function calculateAndSetBoardSize() {
-            if (currentScreen !== 'game-screen' || !gameBoardContainer || !gameDiv) return;
+        function calculateAndSetFontSize() {
+            if (currentScreen !== 'game-screen' || !gameDiv) return;
             
-            // 1. Get the actual dimensions of the container which Flexbox has sized
-            const availableWidth = gameBoardContainer.offsetWidth;
-            const availableHeight = gameBoardContainer.offsetHeight; // This should now be reliable
+            // 1. Get the actual rendered width of the board (which CSS has sized correctly)
+            const finalBoardSize = gameDiv.offsetWidth;
 
-            // 2. The board must be square, so take the minimum of available width and height
-            let finalBoardSize = Math.min(availableWidth, availableHeight);
-            
-            // 3. Clamp the size to a reasonable maximum (450px)
-            finalBoardSize = Math.min(finalBoardSize, 450); 
-            
-            // Adjust for board padding (10px on each side = 20px total)
-            const boardPadding = 20; 
-            finalBoardSize = Math.max(0, finalBoardSize - boardPadding);
-
-            // 4. Set the CSS variables for the game board
-            gameDiv.style.setProperty('--dynamic-board-size', `${finalBoardSize}px`);
-
-            // 5. Calculate cell font size (unchanged)
+            // 2. Calculate cell font size 
             const size = boardSize;
-            const gapSpace = 8 * (size - 1);
-            const cellSideLength = (finalBoardSize - gapSpace) / size;
+            // Gap space is 8px between each of the (size-1) gaps
+            const gapSpace = 8 * (size - 1); 
+            // Calculate the length of one side of a cell
+            const cellSideLength = (finalBoardSize - gapSpace) / size; 
+            // Font size is approximately half the cell side length
             const fontSize = cellSideLength / 2.5; 
             
+            // 3. Set the CSS variable
             gameDiv.style.setProperty('--font-size', `${fontSize}px`);
-            
-            drawBoard();
         }
 
         function drawBoard() { 
             gameDiv.innerHTML = ''; 
+            
+            // Ensure font size is calculated based on current board size before drawing
+            calculateAndSetFontSize();
 
             const finalResult = !gameActive ? checkWinner(board, false) : {};
             
@@ -1035,7 +1021,7 @@
                     if (!isValid(nr, nc) || currentBoard[index(nr, nc)] !== player) {
                         return null;
                     }
-                    winningIndices.push(index(r, c) + k * (dr * size + dc)); // Correct linear index calculation
+                    winningIndices.push(index(nr, nc)); // Pushing the linear index
                 }
                 return { winner: player, winningIndices };
             };
@@ -1452,14 +1438,13 @@
              toggleMute(); 
         });
         
-        // CRITICAL FIX 4: Force a redraw on resize or orientation change to recalculate cell size
+        // CRITICAL FIX: Force a redraw on resize or orientation change to recalculate font size
         window.addEventListener('resize', () => {
             setViewportHeight();
             
             if (currentScreen === 'game-screen') {
-                 setTimeout(() => {
-                    calculateAndSetBoardSize(); 
-                 }, 100);
+                 // A small delay ensures the browser finishes resizing before we measure
+                 setTimeout(calculateAndSetFontSize, 50); 
             }
         });
         

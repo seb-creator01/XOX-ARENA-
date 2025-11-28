@@ -2,9 +2,11 @@
 <html lang="en" style="height: 100vh; overflow: hidden;">
 <head>
     <meta charset="UTF-8">
+    <!-- ✅ CRITICAL FIX: Ensure the viewport is correctly set for responsiveness -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>XOX ARENA</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Firebase includes -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
@@ -86,23 +88,21 @@
         
         /* --- CORE GAME BOARD FIXES --- */
         
-        /* ✅ FIX 1: Make game board container responsive and centered */
+        /* Board Container: Ensures central alignment */
         #game-board-container {
             display: flex;
             justify-content: center;
             align-items: center;
             width: 100vw;
-            max-width: 600px; /* Use the max-width of the screen */
+            max-width: 600px; 
             height: auto;
             padding: 10px;
             box-sizing: border-box;
             margin: 10px auto;
         }
 
-        /* ✅ FIX 2: Grid layout for the board, using the custom CSS property for size */
+        /* The Board Grid: CRITICAL FIX HERE */
         #game { 
-            /* Renamed CSS selector from #game to .board for the fix, but keeping ID in HTML for JS */
-            /* The actual grid structure is defined here */
             display: grid;
             grid-gap: 5px; 
             padding: 10px;
@@ -112,20 +112,24 @@
             /* Uses the JS-set board-size variable */
             grid-template-columns: repeat(var(--board-size), 1fr); 
             
-            /* Use a max size based on viewport/screen size */
+            /* Responsive width */
             width: 90vw;
             max-width: 450px;
-            margin: 0; /* Important: remove auto margin here, container handles center */
+            margin: 0; 
+            
+            /* ✅ CRITICAL CHROME FIX: Force the main grid container to have 1:1 aspect ratio 
+               based on its 90vw width, preventing collapse on mobile. */
+            aspect-ratio: 1 / 1; 
+            box-sizing: border-box; 
         } 
         
-        /* ✅ FIX 3: Each cell adjusts to screen size */
+        /* Cell Styling (Unchanged) */
         .cell { 
-            width: 100%; /* Take up the full grid column width */
+            width: 100%; 
             aspect-ratio: 1 / 1; 
             display: flex;
             justify-content: center;
             align-items: center;
-            /* Use the dynamic font size calculated in JS */
             font-size: var(--font-size, 3rem); 
             font-weight: 900;
             cursor: pointer;
@@ -407,13 +411,15 @@
     <button id="chatOpenBtn" onclick="toggleChatOverlay()" class="fixed-control">💬 Chat</button>
 
     <div id="splash-screen" class="screen">
-        <p>Seb Creations Presents</p>
-        <h1>XOX ARENA</h1>
-        <p id="tagline">“Think Fast. Strike Smart. Rule the Grid.”</p>
-        
-        <button id="play-button" onclick="handlePlayClick()">PLAY GAME</button>
-        
-        <div id="loading-spinner"></div>
+        <div class="screen-content" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <p style="padding-top: 0;">Seb Creations Presents</p>
+            <h1>XOX ARENA</h1>
+            <p id="tagline">“Think Fast. Strike Smart. Rule the Grid.”</p>
+            
+            <button id="play-button" onclick="handlePlayClick()">PLAY GAME</button>
+            
+            <div id="loading-spinner"></div>
+        </div>
     </div>
 
     <div id="home-screen" class="screen">
@@ -491,12 +497,16 @@
                 <p id="gameStatus">Game in progress...</p>
                 <p id="timer" style="display: none;">Turn Time Left: <span id="timerValue">30s</span></p>
                 
+                <!-- ✅ FIX: Wrapped the game board in the new container div -->
                 <div id="game-board-container" class="board-container">
+                    <!-- The main game grid (where the aspect-ratio fix is applied in CSS) -->
                     <div id="game">
-                        </div>
+                        <!-- Cells are dynamically generated here -->
+                    </div>
                 </div>
             </div>
             
+            <!-- NEW REMATCH BUTTON -->
             <button id="rematchBtn" onclick="handleRematch()">REMATCH</button>
 
             <div id="scoreboard">
@@ -525,13 +535,15 @@
             <input type="text" id="chatInput" placeholder="Type a message..." maxlength="100">
             <button onclick="sendChatMessage()">SEND</button>
         </div>
+        <!-- EMOJI PANEL -->
         <div id="emoji-panel">
             <button class="emoji-reaction" onclick="sendChatMessage('😎')">😎</button>
             <button class="emoji-reaction" onclick="sendChatMessage('😂')">😂</button>
             <button class="emoji-reaction" onclick="sendChatMessage('😡')">😡</button>
             <button class="emoji-reaction" onclick="sendChatMessage('😢')">😢</button>
         </div>
-        </div>
+        <!-- END EMOJI PANEL -->
+    </div>
     
     <footer>
         <p>Developed by <b>Seb-Creations</b> | XOX Arena</p>
@@ -1019,7 +1031,7 @@
             const N = size === 3 ? 3 : size; 
 
             const index = (r, c) => r * size + c;
-            const isValid = (r, c) => r >= 0 && r < size && c >= 0 && c < size;
+            const isValid = (r, c) => r >= 0 && c >= 0 && r < size && c < size;
 
             const checkLine = (r, c, dr, dc) => {
                 const player = currentBoard[index(r, c)];
@@ -1046,6 +1058,7 @@
                 for (let c = 0; c < size; c++) {
                     if (currentBoard[index(r, c)]) {
                         for (let [dr, dc] of directions) {
+                            // Boundary checks to ensure we don't start checks where a full line is impossible
                             if ((dr === 1 && r > size - N) || (dc === 1 && c > size - N) || (dc === -1 && c < N - 1) ) continue;
 
                             const result = checkLine(r, c, dr, dc);
@@ -1506,3 +1519,5 @@
     </script>
 </body>
 </html>
+
+

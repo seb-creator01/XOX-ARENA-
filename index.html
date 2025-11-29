@@ -228,7 +228,6 @@
         #muteBtn { right: 10px; }
         #backBtn { left: 10px; display: none; }
         #chatOpenBtn { right: 100px; display: none; } 
-        /* NEW: Exit Button Position */
         #exitOnlineBtn { right: 10px; display: none; } 
 
 
@@ -392,6 +391,23 @@
             margin: 0;
             box-shadow: none;
             flex-shrink: 0;
+        }
+
+        /* --- NEW: CHAT NOTIFICATION STYLE --- */
+        #chat-notification {
+            position: fixed;
+            bottom: 60px; /* Above the footer */
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--color-secondary-accent);
+            color: var(--color-text-dark);
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            z-index: 1003;
+            display: none;
+            font-weight: 700;
+            transition: opacity 0.3s ease-in-out;
         }
 
         /* Footer */
@@ -569,6 +585,7 @@
             
             <div id="post-game-actions" style="display: none;">
                 <button id="rematchBtn" class="neon-button" onclick="handleRematch()">REMATCH</button>
+                 <button id="rematchOnlineBtn" class="neon-button" onclick="handleRematchOnline()" style="display:none;">REQUEST REMATCH</button>
             </div>
             
             <div id="scoreboard">
@@ -608,6 +625,8 @@
         </div>
     </div>
     
+    <div id="chat-notification" style="display: none;"></div>
+
     <footer>
         <p>Developed by <b>Seb-Creations</b> | XOX Arena</p>
     </footer>
@@ -668,6 +687,7 @@
         let localPlayer = null;
         let roomId = null; 
         let currentScreen = 'splash-screen'; 
+        let rematchRequested = false; // NEW: Track rematch state
         
         // NEW: Player Names State
         let playerNames = {
@@ -720,8 +740,11 @@
         const nameScoreO = document.getElementById('nameScoreO');
         const chatOverlay = document.getElementById('chat-overlay');
         const postGameActionsDiv = document.getElementById('post-game-actions');
-        // NEW: Exit Online Button DOM
         const exitOnlineBtn = document.getElementById('exitOnlineBtn');
+        // NEW: Rematch button DOM
+        const rematchOnlineBtn = document.getElementById('rematchOnlineBtn');
+        // NEW: Chat Notification DOM
+        const chatNotification = document.getElementById('chat-notification');
 
         
         // --- UI & STATE HANDLERS ---
@@ -815,7 +838,6 @@
             currentScreen = screenId;
             
             // UI Controls
-            // NEW: Updated back button logic to show 'Exit' button instead in online game
             const isOnlineGame = isGameScreen && mode === 'online';
             backBtn.style.display = (screenId === 'home-screen' || screenId === 'splash-screen' || isOnlineGame) ? 'none' : 'block';
             exitOnlineBtn.style.display = isOnlineGame ? 'block' : 'none';
@@ -860,10 +882,8 @@
             } else if (screenId === 'online-lobby') {
                 mode = 'online';
                 document.getElementById('onlinePlayerName').disabled = false;
-                // NEW: Ensure board size selection is active when returning to lobby
                 if (roomId) {
                     // If returning from a game, sync to host's size, but keep local state
-                    // The syncGame function will handle the board size sync based on DB
                 } else {
                      setBoardSize(3, document.getElementById('onlineSize3x3Btn'), false, 'online-lobby');
                 }
@@ -884,6 +904,25 @@
                 chatOverlay.classList.remove('visible');
             }
         }
+        
+        // NEW: CHAT NOTIFICATION LOGIC
+        function showChatNotification(message) {
+            if (chatOverlay.classList.contains('visible')) {
+                return; // Don't show notification if chat is open
+            }
+            chatNotification.textContent = message;
+            chatNotification.style.display = 'block';
+            chatNotification.style.opacity = '1';
+            
+            // Auto-hide the notification after 4 seconds
+            setTimeout(() => {
+                chatNotification.style.opacity = '0';
+                setTimeout(() => {
+                    chatNotification.style.display = 'none';
+                }, 300); // Wait for fade-out transition
+            }, 4000);
+        }
+
 
         function handleBack(isUserInitiated = false) {
             if (chatOverlay.classList.contains('visible')) {
@@ -933,6 +972,7 @@
                 }
                 roomId = null;
                 localPlayer = null;
+                rematchRequested = false; // Reset rematch state
             }
             showScreen('online-lobby');
             onlineStatusP.textContent = "You left the game. Enter an ID or create a new game.";
@@ -1065,7 +1105,7 @@
                 });
             }
             
-            // NEW: Update display text for buttons
+            // Update display text for buttons
             if (location === 'local-config') {
                 document.getElementById('size3x3Btn').textContent = `3x3 (${getWinLength(3)}-in-a-Row)`;
                 document.querySelector('#boardSizeControls button:nth-child(2)').textContent = `4x4 (${getWinLength(4)}-in-a-Row)`;
@@ -1076,7 +1116,7 @@
             // Update lobby display if applicable
             if (location === 'online-lobby') {
                 lobbyBoardSizeSpan.textContent = `${size}x${size}`;
-                // NEW: If online game is active, update the DB with new size
+                // If online game is active, update the DB with new size
                 if (roomId && localPlayer === 'X' && db && skipReset === false && previousSize !== size) {
                     // Player X (Host) updates the size, which will trigger sync for Player O
                     db.ref('games/' + roomId).update({
@@ -1125,7 +1165,7 @@
                 cell.innerHTML = val ? `<strong>${val}</strong>` : ''; // Use strong for better visibility
                 cell.setAttribute('data-index', i);
 
-                // NEW: Apply winning class
+                // Apply winning class
                 if (!gameActive && finalResult.winningIndices && finalResult.winningIndices.includes(i)) {
                     cell.classList.add('winner');
                 }
@@ -1136,8 +1176,10 @@
 
             if (currentScreen === 'game-screen') {
                 postGameActionsDiv.style.display = gameActive ? 'none' : 'block';
-                // NEW: Rematch button hidden in online mode
-                if (mode === 'online') postGameActionsDiv.style.display = 'none'; 
+                // Rematch button visibility
+                document.getElementById('rematchBtn').style.display = (mode !== 'online') ? 'block' : 'none';
+                document.getElementById('rematchOnlineBtn').style.display = (mode === 'online' && !gameActive) ? 'block' : 'none';
+
 
                 if (mode === 'online' && localPlayer) {
                     if (!gameActive) {
@@ -1225,7 +1267,7 @@
                 [1, -1] // Anti-Diagonal (/)
             ];
 
-            // NEW: Only need to check for winning lines that *start* within the valid range
+            // Only need to check for winning lines that *start* within the valid range
             for (let r = 0; r < size; r++) {
                 for (let c = 0; c < size; c++) {
                     if (currentBoard[index(r, c)]) {
@@ -1278,6 +1320,7 @@
             board = Array(newBoardLength).fill('');
             currentPlayer = 'X';
             gameActive = true;
+            rematchRequested = false; // Reset local flag
             drawBoard();
             resetLocalTimer();
         }
@@ -1295,7 +1338,59 @@
             resetGame();
         }
         
-        // --- CHAT LOGIC ---
+        // --- ONLINE REMATCH LOGIC ---
+
+        /**
+         * Handles the local player requesting a rematch.
+         */
+        function handleRematchOnline() {
+            if (!db || !roomId || gameActive) return;
+
+            if (rematchRequested) {
+                // If the local player already requested, they can accept the opponent's pending request
+                if (localPlayer === 'X' && rematchRequested === 'O') {
+                    acceptRematch();
+                } else if (localPlayer === 'O' && rematchRequested === 'X') {
+                    acceptRematch();
+                } else {
+                     alert("You have already requested a rematch. Waiting for opponent.");
+                }
+                return;
+            }
+
+            // Set the request flag in the database
+            db.ref('games/' + roomId).update({
+                rematchRequest: localPlayer,
+                lastMoveTime: firebase.database.ServerValue.TIMESTAMP // Update timestamp to force sync
+            }).then(() => {
+                rematchRequested = localPlayer;
+                rematchOnlineBtn.textContent = "WAITING FOR ACCEPTANCE...";
+                rematchOnlineBtn.disabled = true;
+                sendChatMessage(`Rematch requested by ${playerNames[localPlayer]}!`, false, true);
+            }).catch(e => console.error("Error requesting rematch:", e));
+        }
+
+        /**
+         * Handles the acceptance of a rematch request.
+         * Only one player needs to trigger this to reset the game.
+         */
+        function acceptRematch() {
+            if (!db || !roomId) return;
+
+            const newBoardLength = boardSize * boardSize;
+
+            db.ref('games/' + roomId).update({
+                board: Array(newBoardLength).fill(''),
+                currentPlayer: 'X', // X always starts the new round
+                gameActive: true,
+                rematchRequest: false, // Clear the request
+                lastMoveTime: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                sendChatMessage("Rematch accepted! New round starting.", false, true);
+            }).catch(e => console.error("Error accepting rematch:", e));
+        }
+
+        // --- CHAT LOGIC (Updated syncChat) ---
         function sendChatMessage(message = null, isReaction = false, isSystem = false) {
             if (!db || !roomId) return;
 
@@ -1338,6 +1433,11 @@
                 msgElement.className = sender === 'X' ? 'chat-message-x' : (sender === 'O' ? 'chat-message-o' : 'chat-message-system');
                 chatMessages.appendChild(msgElement);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                // NEW: Show notification if the message is from the opponent and chat is closed
+                if (sender !== localPlayer && sender !== 'System' && !chatOverlay.classList.contains('visible')) {
+                     showChatNotification(`New message from ${senderName}!`);
+                }
             });
         }
         
@@ -1348,14 +1448,14 @@
 
         function createGame() {
             if (!db) return;
-            // NEW: Use input ID if provided, otherwise generate
+            // Use input ID if provided, otherwise generate
             roomId = roomIdInput.value.trim() || generateRoomId(); 
             localPlayer = 'X';
             playerNames['X'] = document.getElementById('onlinePlayerName').value.trim() || 'Player X';
             playerNames['O'] = 'Waiting...';
             loadingSpinnerOnline.style.display = 'block';
 
-            // NEW: Get current board size from state
+            // Get current board size from state
             const currentBoardSize = boardSize; 
             const newBoardLength = currentBoardSize * currentBoardSize;
 
@@ -1369,7 +1469,8 @@
                 playerXName: playerNames['X'],
                 playerOName: playerNames['O'],
                 scores: { scoreX: 0, scoreO: 0, draws: 0 },
-                lastMoveTime: firebase.database.ServerValue.TIMESTAMP
+                lastMoveTime: firebase.database.ServerValue.TIMESTAMP,
+                rematchRequest: false // NEW: Initialize rematch request flag
             }).then(() => {
                 document.getElementById('onlineStatus').innerHTML = `Game created! Your ID is: <strong>${roomId}</strong>. Waiting for Player O...`;
                 roomIdInput.value = roomId;
@@ -1401,7 +1502,7 @@
                 const gameState = snapshot.val();
                 if (snapshot.exists() && !gameState.playerO) {
                     localPlayer = 'O';
-                    // NEW: Set the joining player's local board size to the host's board size
+                    // Set the joining player's local board size to the host's board size
                     boardSize = gameState.boardSize; 
                     setBoardSize(boardSize, null, true, 'online-lobby');
                     playerNames['X'] = gameState.playerXName;
@@ -1414,7 +1515,7 @@
                         onlineStatusP.textContent = `Joined game ${roomId}! The game size is ${boardSize}x${boardSize}.`;
                         startGameOnlineBtn.style.display = 'block';
                         loadingSpinnerOnline.style.display = 'none';
-                        syncChat(); // <--- ADDED syncChat() for Player O
+                        syncChat(); 
                         showScreen('game-screen', true);
                     }).catch(e => {
                         onlineStatusP.textContent = `Error joining game: ${e.message}`;
@@ -1437,7 +1538,7 @@
                     db.ref('games/' + roomId).off(); 
                     if (currentScreen === 'game-screen' || currentScreen === 'online-lobby') {
                         alert("Opponent disconnected or the room was closed. Returning to lobby.");
-                        handleExitOnlineMode(); // Use the exit handler to clean up local state
+                        handleExitOnlineMode(); 
                     }
                     return;
                 }
@@ -1448,7 +1549,7 @@
                 playerNames['X'] = gameState.playerXName || 'Player X';
                 playerNames['O'] = gameState.playerOName || 'Waiting...';
                 
-                // NEW: Sync board size from DB
+                // Sync board size from DB
                 if (gameState.boardSize && gameState.boardSize !== boardSize) {
                     setBoardSize(gameState.boardSize, null, false); // Do not skip reset, reset game for new size
                 }
@@ -1458,6 +1559,38 @@
                 currentPlayer = gameState.currentPlayer;
                 gameActive = gameState.gameActive;
                 
+                // NEW: Rematch State Management
+                rematchRequested = gameState.rematchRequest || false;
+
+                if (mode === 'online') {
+                    postGameActionsDiv.style.display = gameActive ? 'none' : 'block';
+                    document.getElementById('rematchBtn').style.display = 'none'; // Hide local button in online mode
+                    rematchOnlineBtn.style.display = gameActive ? 'none' : 'block';
+                    
+                    if (gameActive) {
+                        // Game is active - clear rematch UI
+                        rematchOnlineBtn.textContent = "REQUEST REMATCH";
+                        rematchOnlineBtn.disabled = false;
+                    } else {
+                        // Game is over - check rematch status
+                        if (rematchRequested === localPlayer) {
+                            rematchOnlineBtn.textContent = "WAITING FOR ACCEPTANCE...";
+                            rematchOnlineBtn.disabled = true;
+                        } else if (rematchRequested && rematchRequested !== localPlayer) {
+                            // Opponent has requested a rematch!
+                            rematchOnlineBtn.textContent = "ACCEPT REMATCH!";
+                            rematchOnlineBtn.disabled = false;
+                            // Change the button action temporarily to accept
+                            rematchOnlineBtn.onclick = acceptRematch; 
+                        } else {
+                            // No one has requested yet
+                            rematchOnlineBtn.textContent = "REQUEST REMATCH";
+                            rematchOnlineBtn.disabled = false;
+                            rematchOnlineBtn.onclick = handleRematchOnline; 
+                        }
+                    }
+                }
+
                 // Timer Logic
                 if (gameState.lastMoveTime && gameActive && localPlayer === currentPlayer) {
                     startTimer(gameState.lastMoveTime);
@@ -1484,6 +1617,7 @@
                                     currentPlayer: 'X',
                                     gameActive: true,
                                     boardSize: currentGameState.boardSize,
+                                    rematchRequest: false, // Ensure rematch request is cleared
                                     lastMoveTime: firebase.database.ServerValue.TIMESTAMP
                                 });
                             });
@@ -1702,7 +1836,7 @@
              // Set initial mute state
              toggleMute(); // Mute by default until user interacts (browser policy)
 
-             // NEW: Add event listener for Enter key in chat input
+             // Add event listener for Enter key in chat input
              chatInput.addEventListener('keypress', function(e) {
                  if (e.key === 'Enter') {
                      e.preventDefault(); // Prevent default form submission/new line

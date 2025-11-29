@@ -701,8 +701,8 @@
         let localPlayer = null;
         let roomId = null; 
         let currentScreen = 'splash-screen'; 
-        let rematchRequested = false; // NEW: Track rematch state
-        let playerOJoined = false; // NEW: Track if Player O has joined
+        let rematchRequested = false; // Track rematch state
+        let playerOJoined = false; // Track if Player O has joined
 
         // NEW: Player Names State
         let playerNames = {
@@ -758,10 +758,10 @@
         const exitOnlineBtn = document.getElementById('exitOnlineBtn');
         // Rematch button DOM
         const rematchOnlineBtn = document.getElementById('rematchOnlineBtn');
-        // NEW: Chat Badge DOM
+        // Chat Badge DOM
         const chatBadge = document.getElementById('chatBadge');
         
-        let unreadMessageCount = 0; // NEW: Counter for unread messages
+        let unreadMessageCount = 0; // Counter for unread messages
 
 
         
@@ -821,7 +821,7 @@
             if (playButton) playButton.style.display = 'none';
             if (loadingSpinner) loadingSpinner.style.display = 'block';
 
-            // Initial music start (menuMusic will start)
+            // Initial music start (menuMusic will start) - Must be triggered by user action!
             playMusic(menuMusic, 0.3);
 
             setTimeout(() => {
@@ -856,7 +856,7 @@
             currentScreen = screenId;
             
             // UI Controls
-            // Check if we are in an established online mode (Fix 1: Chat button visibility logic)
+            // Check if we are in an established online mode
             const isOnlineModeActive = mode === 'online' && (roomId !== null); 
             backBtn.style.display = (screenId === 'home-screen' || screenId === 'splash-screen' || isOnlineModeActive) ? 'none' : 'block';
             exitOnlineBtn.style.display = isOnlineModeActive && screenId !== 'home-screen' ? 'block' : 'none'; 
@@ -889,7 +889,7 @@
                     drawBoard();
                     resetLocalTimer(); // Start timer for first move
                 } else if (mode === 'online' && localPlayer) {
-                    // NEW: Prevent game screen if Player O hasn't joined (only for X)
+                    // Prevent game screen if Player O hasn't joined (only for X)
                     if (localPlayer === 'X' && !playerOJoined) {
                         alert("Opponent has not joined yet. Please wait in the lobby.");
                         showScreen('online-lobby');
@@ -940,7 +940,7 @@
             }
         }
         
-        // NEW: CHAT BADGE LOGIC
+        // CHAT BADGE LOGIC
         function updateChatBadge(count, reset = false) {
             if (reset) {
                 unreadMessageCount = 0;
@@ -985,7 +985,7 @@
             }
         }
 
-        // NEW: Exit Online Mode Handler
+        // Exit Online Mode Handler
         function handleExitOnlineMode() {
             if (!confirm("Are you sure you want to leave the game? This will close the room for your opponent if you are Player X.")) {
                 return;
@@ -1203,7 +1203,7 @@
                 cell.innerHTML = val ? `<strong>${val}</strong>` : ''; // Use strong for better visibility
                 cell.setAttribute('data-index', i);
 
-                // Apply winning class (Fix 3: Used for online mode as well)
+                // Apply winning class (Used for online mode as well)
                 if (!gameActive && finalResult.winningIndices && finalResult.winningIndices.includes(i)) {
                     cell.classList.add('winner');
                 }
@@ -1221,7 +1221,7 @@
 
                 if (mode === 'online' && localPlayer) {
                     if (!gameActive) {
-                        // Fix 3: Use the passed finalResult for the win indication
+                        // Use the passed finalResult for the win indication
                         let message = '';
                         if (finalResult.winner === 'Draw') {
                             message = 'IT\'S A DRAW!';
@@ -1233,7 +1233,7 @@
                             message = `GAME OVER! <strong style="color:${color};">${winnerName} (${finalResult.winner})</strong> WINS!`;
                             playSoundEffect(winSound);
                         } else {
-                            // Should not happen, but a fallback
+                            // Fallback
                              message = 'GAME OVER! Waiting for next round.';
                         }
                         
@@ -1441,7 +1441,7 @@
             }).catch(e => console.error("Error accepting rematch:", e));
         }
 
-        // --- CHAT LOGIC (Updated syncChat) ---
+        // --- CHAT LOGIC ---
         function sendChatMessage(message = null, isReaction = false, isSystem = false) {
             if (!db || !roomId) return;
 
@@ -1473,7 +1473,7 @@
                 const sender = messageData.sender;
                 const message = messageData.message;
                 // Use a short name for system messages if necessary
-                const senderName = sender === 'System' ? 'System' Message : (playerNames[sender] || sender); 
+                const senderName = sender === 'System' ? 'System Message' : (playerNames[sender] || sender); 
                 const isReaction = messageData.isReaction || false;
                 
                 const msgElement = document.createElement('p');
@@ -1487,7 +1487,7 @@
                 chatMessages.appendChild(msgElement);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
 
-                // Fix 2: Update badge if the message is from the opponent or system and chat is closed
+                // Update badge if the message is from the opponent or system and chat is closed
                 if (sender !== localPlayer && !chatOverlay.classList.contains('visible')) {
                      updateChatBadge(1);
                 }
@@ -1530,13 +1530,13 @@
             }).then(() => {
                 document.getElementById('onlineStatus').innerHTML = `Game created! Your ID is: <strong>${roomId}</strong>. Waiting for Player O...`;
                 roomIdInput.value = roomId;
-                // Fix 1: Show chat button immediately in the lobby
+                // Show chat button immediately in the lobby
                 chatOpenBtn.style.display = 'block'; 
                 document.getElementById('onlineScoreLocal').textContent = '0';
                 document.getElementById('onlineScoreOpponent').textContent = '0';
                 document.getElementById('onlineScoreDraws').textContent = '0';
                 syncGame();
-                syncChat(); // Fix 2: Start listening for chat immediately
+                syncChat(); // Start listening for chat immediately
                 loadingSpinnerOnline.style.display = 'none';
             }).catch(e => {
                 document.getElementById('onlineStatus').textContent = `Error creating game: ${e.message}`;
@@ -1573,9 +1573,9 @@
                         onlineStatusP.textContent = `Joined game ${roomId}! The game size is ${boardSize}x${boardSize}. Ready to play.`;
                         startGameOnlineBtn.style.display = 'block';
                         loadingSpinnerOnline.style.display = 'none';
-                        // Fix 1: Show chat button immediately in the lobby
+                        // Show chat button immediately in the lobby
                         chatOpenBtn.style.display = 'block';
-                        syncChat(); // Fix 2: Start listening for chat immediately
+                        syncChat(); // Start listening for chat immediately
                         syncGame(); // Start game sync
                     }).catch(e => {
                         onlineStatusP.textContent = `Error joining game: ${e.message}`;
@@ -1614,7 +1614,7 @@
                 playerNames['X'] = gameState.playerXName || 'Player X';
                 playerNames['O'] = gameState.playerOName || 'Waiting...';
                 
-                // NEW: Player O joined status check
+                // Player O joined status check
                 playerOJoined = gameState.playerO || false;
 
                 if (localPlayer === 'X' && currentScreen === 'online-lobby') {
@@ -1637,11 +1637,11 @@
                 currentPlayer = gameState.currentPlayer;
                 gameActive = gameState.gameActive;
                 
-                // NEW: Rematch State Management (Unchanged)
+                // Rematch State Management
                 rematchRequested = gameState.rematchRequest || false;
 
                 if (mode === 'online') {
-                    // Fix 1: Ensure chat button is visible if in online mode
+                    // Ensure chat button is visible if in online mode
                     if (currentScreen === 'online-lobby' || currentScreen === 'game-screen') {
                         chatOpenBtn.style.display = 'block';
                     }
@@ -1685,7 +1685,7 @@
                     updateOnlineScoreboard(gameState.scores);
                 }
                 
-                // Fix 3: Check for winner and pass result to drawBoard to highlight winning cells
+                // Check for winner and pass result to drawBoard to highlight winning cells
                 let finalResult = {};
                 if (!gameActive) {
                     // Check local board state for win/draw status
@@ -1702,7 +1702,7 @@
                 if (prevGameActive && !gameActive) {
                     if (autoResetTimeout) clearTimeout(autoResetTimeout);
                     autoResetTimeout = setTimeout(() => {
-                        // NEW: Prevent auto-reset if a rematch is pending/accepted
+                        // Prevent auto-reset if a rematch is pending/accepted
                         if (gameState.rematchRequest) return; 
 
                         if (localPlayer === 'X') {
@@ -1926,8 +1926,8 @@
              // Default AI setting
              setActiveButton('aiDifficultyControls', document.querySelector('#aiDifficultyControls button:last-child'));
 
-             // Set initial mute state
-             toggleMute(); // Mute by default until user interacts (browser policy)
+             // --- FIX: REMOVED THE PROBLEMATIC toggleMute() CALL HERE ---
+             // toggleMute(); // <-- REMOVED
 
              // Add event listener for Enter key in chat input
              chatInput.addEventListener('keypress', function(e) {

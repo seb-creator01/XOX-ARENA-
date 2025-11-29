@@ -240,19 +240,40 @@
         #chatOpenBtn:hover {
             background: var(--color-cell-hover);
         }
+        
+        /* --- NEW CHAT ALERT ANIMATION (for visibility) --- */
+        @keyframes chat-alert-flash {
+            0%, 100% { 
+                box-shadow: 0 0 5px rgba(0, 0, 0, 0.5); 
+                transform: scale(1);
+            }
+            50% { 
+                /* Pulsing neon blue effect */
+                box-shadow: 0 0 15px var(--color-primary-accent), 0 0 20px var(--color-primary-accent); 
+                transform: scale(1.05); 
+            }
+        }
+
+        #chatOpenBtn.new-message-alert {
+            /* Apply the animation when new messages arrive */
+            animation: chat-alert-flash 1s infinite alternate;
+        }
 
 
+        /* REFINED CHAT BADGE STYLE (Matching user request for a clear count) */
         #chatBadge {
             position: absolute;
             top: -5px;
             right: -5px;
             background-color: #f44336; /* Red for notifications */
             color: var(--color-text-light);
-            font-size: 0.75rem;
+            font-size: 0.7rem; /* Smaller font for circle */
             font-weight: 700;
-            padding: 2px 6px;
+            padding: 3px 5px; /* Adjust padding */
             border-radius: 50%;
-            min-width: 10px;
+            min-width: 16px; /* Ensure minimum size */
+            height: 16px;
+            line-height: 10px; /* Vertically center the text */
             text-align: center;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
             display: none; /* Hidden by default */
@@ -946,7 +967,7 @@
             }
         }
         
-        // CHAT BADGE LOGIC
+        // CHAT BADGE LOGIC (FIXED)
         function updateChatBadge(count, reset = false) {
             if (reset) {
                 unreadMessageCount = 0;
@@ -956,10 +977,12 @@
             
             if (unreadMessageCount > 0) {
                 chatBadge.textContent = unreadMessageCount > 99 ? '99+' : unreadMessageCount.toString();
-                chatBadge.style.display = 'block';
+                chatBadge.style.display = 'flex'; // Use flex to center text vertically/horizontally
+                chatOpenBtn.classList.add('new-message-alert'); // <<< ADD FLASH CLASS
             } else {
                 chatBadge.style.display = 'none';
                 chatBadge.textContent = '0';
+                chatOpenBtn.classList.remove('new-message-alert'); // <<< REMOVE FLASH CLASS
             }
         }
 
@@ -1496,7 +1519,7 @@
 
                 // --- NEW MESSAGE NOTIFICATION ---
                 if (isNew && sender !== localPlayer && !chatOverlay.classList.contains('visible')) {
-                     updateChatBadge(1); // Increment count by 1
+                     updateChatBadge(1); // Increment count by 1 (triggers flash)
                 }
             };
 

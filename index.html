@@ -335,10 +335,12 @@
             overflow-y: auto;
             flex-grow: 1;
             padding: 10px 20px;
+            text-align: left; /* Align messages to the left */
         }
         #chat-messages p {
             margin: 5px 0;
             font-size: 0.95rem;
+            word-wrap: break-word; /* Ensure long messages wrap */
         }
         .chat-message-x { color: var(--color-primary-accent); } 
         .chat-message-o { color: var(--color-secondary-accent); } 
@@ -588,6 +590,7 @@
     </div>
 
     <div id="chat-overlay">
+        <button onclick="toggleChatOverlay()" style="position: absolute; top: 10px; right: 10px; padding: 5px 10px; font-size: 1.2rem; background: none; border: 1px solid var(--color-text-light); color: var(--color-text-light); border-radius: 5px; box-shadow: none;">✖</button>
         <h2>GAME CHAT</h2>
         <div id="chat-messages">
         </div>
@@ -822,6 +825,7 @@
             
             manageMusic(screenId);
             stopTimer();
+            toggleChatOverlay(false); // Ensure chat is closed when switching screens
 
             // Screen-specific setup
             if (screenId === 'game-screen') {
@@ -873,13 +877,17 @@
             nameScoreO.textContent = playerNames['O'];
         }
 
-        function toggleChatOverlay() {
-            chatOverlay.classList.toggle('visible');
+        function toggleChatOverlay(toggle = true) {
+            if (toggle) {
+                chatOverlay.classList.toggle('visible');
+            } else {
+                chatOverlay.classList.remove('visible');
+            }
         }
 
         function handleBack(isUserInitiated = false) {
             if (chatOverlay.classList.contains('visible')) {
-                toggleChatOverlay();
+                toggleChatOverlay(false); // Close chat if open
                 return;
             }
             stopTimer();
@@ -996,7 +1004,7 @@
                             gameActive: false,
                             currentPlayer: winner, // Set winner as next player to start
                             scores: newScores,
-                            lastMoveTime: firebase.database.ServerValue.TIMESTAMP // To trigger sync
+                            lastMoveTime: firebase.database.ServerValue.TIMESTAMP 
                         });
                         sendChatMessage(`${playerNames[loser]} ran out of time! ${playerNames[winner]} wins the round.`, false, true);
                     });
@@ -1406,6 +1414,7 @@
                         onlineStatusP.textContent = `Joined game ${roomId}! The game size is ${boardSize}x${boardSize}.`;
                         startGameOnlineBtn.style.display = 'block';
                         loadingSpinnerOnline.style.display = 'none';
+                        syncChat(); // <--- ADDED syncChat() for Player O
                         showScreen('game-screen', true);
                     }).catch(e => {
                         onlineStatusP.textContent = `Error joining game: ${e.message}`;
@@ -1692,6 +1701,14 @@
 
              // Set initial mute state
              toggleMute(); // Mute by default until user interacts (browser policy)
+
+             // NEW: Add event listener for Enter key in chat input
+             chatInput.addEventListener('keypress', function(e) {
+                 if (e.key === 'Enter') {
+                     e.preventDefault(); // Prevent default form submission/new line
+                     sendChatMessage();
+                 }
+             });
         });
         
     </script>

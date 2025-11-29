@@ -211,7 +211,7 @@
             transition: background 0.3s, color 0.3s;
         }
         
-        /* Fixed top controls (Themed) */
+        /* Fixed top controls */
         .fixed-control {
             position: fixed;
             top: 10px;
@@ -228,20 +228,37 @@
         #muteBtn { right: 10px; }
         #backBtn { left: 10px; display: none; }
         
-        /* NEW: Chat Open Button with Badge Styling */
+        /* --- CRITICAL CHAT BUTTON STYLE FIX --- */
+        /* Ensure the button uses 'fixed' positioning and a specific 'right' value */
         #chatOpenBtn { 
-            right: 100px; 
-            position: relative;
+            position: fixed; /* Explicitly fixed position */
+            top: 10px;
+            right: 90px; /* Positioned to the left of the Exit button (right: 10px) */
             padding: 8px 15px;
-            color: var(--color-secondary-accent); /* Make chat icon neon green */
-            /* CRITICAL FIX: The JS controls the display property */
-            display: none; 
+            background: var(--color-panel-bg);
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+            color: var(--color-primary-accent); /* Updated color to Blue/Cyan */
+            display: none; /* JS still handles the block/none toggle */
+            z-index: 1000;
         } 
         
         #chatOpenBtn:hover {
             background: var(--color-cell-hover);
         }
         
+        #chatOpenBtn span {
+            font-size: 1.1rem; /* Slightly larger text for chat */
+            font-weight: 700;
+        }
+        
+        /* NEW: Custom icon styling to match the reference image */
+        .chat-icon {
+            font-style: normal; /* Override default italic for <i> */
+            font-size: 1.2rem;
+            color: var(--color-text-light); /* White/light color for the icon */
+            margin-right: 5px;
+        }
         /* --- NEW CHAT ALERT ANIMATION (for visibility) --- */
         @keyframes chat-alert-flash {
             0%, 100% { 
@@ -488,8 +505,8 @@
     <button id="muteBtn" onclick="toggleMute()" class="fixed-control">🔊</button>
     <button id="backBtn" onclick="handleBack(true)" class="fixed-control">← Back</button>
     
-    <button id="chatOpenBtn" onclick="toggleChatOverlay()" class="fixed-control">
-        💬 Chat
+    <button id="chatOpenBtn" onclick="toggleChatOverlay()">
+        <i class="chat-icon">💬</i> <span>Chat</span>
         <span id="chatBadge">0</span>
     </button>
     <button id="exitOnlineBtn" onclick="handleExitOnlineMode()" class="fixed-control" style="background: #f44336; color: var(--color-text-dark);">🚪 Exit</button>
@@ -892,7 +909,7 @@
 
             // CRITICAL CHAT BUTTON VISIBILITY LOGIC (FIXED)
             // Chat button is visible in online-lobby and game-screen if a room is active
-            chatOpenBtn.style.display = (isOnlineModeActive && (screenId === 'game-screen' || screenId === 'online-lobby')) ? 'block' : 'none';
+            chatOpenBtn.style.display = (isOnlineModeActive && (screenId === 'game-screen' || screenId === 'online-lobby')) ? 'flex' : 'none';
             if (!isOnlineModeActive) {
                 updateChatBadge(0, true); // Reset badge when leaving online mode
             }
@@ -1700,7 +1717,7 @@
                 if (mode === 'online') {
                     // Ensure chat button is visible if in online mode
                     if (currentScreen === 'online-lobby' || currentScreen === 'game-screen') {
-                        chatOpenBtn.style.display = 'block';
+                        chatOpenBtn.style.display = 'flex'; // Use flex for icon alignment
                     }
                     
                     postGameActionsDiv.style.display = gameActive ? 'none' : 'block';

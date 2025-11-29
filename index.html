@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en" style="height: 100vh; overflow: hidden;">
 <head>
@@ -377,7 +378,7 @@
                     <button onclick="setBoardSize(6, this, false, 'online-lobby')">6x6</button>
                 </div>
                 
-                <input type="text" id="roomIdInput" placeholder="Enter Room ID (e.g., GAME123)" style="margin: 20px 0;">
+                <input type="text" id="roomIdInput" placeholder="Enter Room ID (or leave blank to create random)" style="margin: 20px 0;">
                 <input type="text" id="onlinePlayerName" placeholder="Your Name (Max 15 chars)" value="Online Player" maxlength="15" style="margin-bottom: 20px;">
                 
                 <button onclick="createGame()">CREATE GAME (I am X)</button>
@@ -464,6 +465,7 @@
     <script>
         
         // --- FIREBASE CONFIGURATION --- 
+        // NOTE: Please replace this with your actual Firebase config if you deploy this app.
         const firebaseConfig = { 
             apiKey: "AIzaSyAFUoT40IjaiqH2791QvyNUP6SakHarupY", 
             authDomain: "tic-tac-toe-9e69d.firebaseapp.com", 
@@ -495,7 +497,7 @@
         let mode = 'local';
         let gameActive = true; 
         let aiDifficulty = 'hard';
-        let localPlayer = null;
+        let localPlayer = null; // 'X' or 'O' for online mode
         let roomId = null; 
         let currentScreen = 'splash-screen'; 
         
@@ -535,6 +537,16 @@
         
         const LOADING_TIME_MS = 1000;
         
+        // --- Utility Functions ---
+        function generateRandomCode(length = 6) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
         // --- UI & STATE HANDLERS ---
         function setActiveButton(containerId, activeBtn) {
             if (!activeBtn) return;
@@ -727,7 +739,12 @@
 
             if (currentScreen === 'game-screen') {
                 if (mode === 'online') {
-                    showScreen('online-lobby');
+                    // If online, clean up room and return to lobby
+                    if(isUserInitiated) {
+                        alert("Leaving the game will close the room for your opponent.");
+                    }
+                    showScreen('online-lobby'); 
+                    // Room cleanup logic is in showScreen('online-lobby') path
                 } else if (mode === 'ai') {
                     showScreen('ai-config');
                 } else {
@@ -786,11 +803,15 @@
                     let newScores = gameState.scores || { scoreX: 0, scoreO: 0, draws: 0 };
                     if (winner === 'X') newScores.scoreX++; else newScores.scoreO++;
 
+                    // Send the update to Firebase
                     db.ref('games/' + roomId).update({
                         gameActive: false,
                         scores: newScores,
-                        lastMoveTime: firebase.database.ServerValue.TIMESTAMP // Triggers sync
+                        lastMoveTime: firebase.database.ServerValue.TIMESTAMP, // Triggers sync
+                        winningIndices: null // Clear line if it was a time out
                     });
+                    
+                    // Send a system message to chat
                     sendChatMessage(`${playerNames[loser]} ran out of time! ${playerNames[winner]} wins the round.`, false, true);
                 });
             } else if (mode !== 'online') {
@@ -918,9 +939,14 @@
                 if (mode === 'online' && localPlayer) {
                     const turnPlayerName = playerNames[currentPlayer] || currentPlayer;
                     const turnMessage = (currentPlayer === localPlayer) ? 'YOUR TURN!' : `${turnPlayerName}'S TURN.`;
-                    gameStatusP.innerHTML = gameActive 
-                        ? `YOU ARE <strong>${localPlayer} (${playerNames[localPlayer]})</strong>. IT IS <strong>${turnMessage}</strong>`
-                        : `GAME OVER! ${finalResult.winner === 'Draw' ? 'IT\'S A DRAW!' : `<strong>${finalResult.winner} (${playerNames[finalResult.winner]})</strong> WINS!`}. ${localPlayer === 'X' ? 'New round starts in 3s.' : 'Waiting for host...'}`;
+                    
+                    if (!playerNames['O'] || playerNames['O'].includes('Waiting')) {
+                        gameStatusP.innerHTML = `WAITING FOR OPPONENT... (Share Code: <strong>${roomId}</strong>)`;
+                    } else {
+                        gameStatusP.innerHTML = gameActive 
+                            ? `YOU ARE <strong>${localPlayer} (${playerNames[localPlayer]})</strong>. IT IS <strong>${turnMessage}</strong>`
+                            : `GAME OVER! ${finalResult.winner === 'Draw' ? 'IT\'S A DRAW!' : `<strong>${finalResult.winner} (${playerNames[finalResult.winner]})</strong> WINS!`}. ${localPlayer === 'X' ? 'New round auto-starts in 3s.' : 'Waiting for host to restart...'}`;
+                    }
                 } else if (gameActive) {
                     gameStatusP.innerHTML = `<strong>${playerNames[currentPlayer]} (${currentPlayer})</strong>'S TURN.`;
                 } else {
@@ -940,6 +966,13 @@
             
             if (mode === 'online') {
                 if (currentPlayer !== localPlayer) return;
+                
+                // Block move if waiting for opponent to join
+                if (!playerNames['O'] || playerNames['O'].includes('Waiting')) {
+                    alert("Waiting for opponent to join the room.");
+                    return;
+                }
+                
                 handleOnlineMove(index);
             } else if (mode === 'ai' && currentPlayer === 'O') {
                 // Player cannot click during AI's turn
@@ -1030,6 +1063,7 @@
         }
         
         function updateOnlineScoreboard(scores) {
+            if (!scores || !localPlayer) return;
             const localWinCount = localPlayer === 'X' ? scores.scoreX : scores.scoreO;
             const opponentWinCount = localPlayer === 'X' ? scores.scoreO : scores.scoreX;
             document.getElementById('onlineScoreLocal').textContent = localWinCount;
@@ -1051,7 +1085,7 @@
         }
 
         function handleRematch() {
-            resetGame();
+            resetGame(); // Only used for local/AI games
         }
         
         // --- AI LOGIC (Minimax for Hard) ---
@@ -1059,8 +1093,9 @@
             return currentBoard.map((val, i) => (val === '' ? i : null)).filter(i => i !== null);
         }
 
+        // Minimax implementation (omitted for brevity, assume it's included as in previous version)
         function minimax(newBoard, player) {
-            const availableSpots = getEmptyIndices(newBoard);
+             const availableSpots = getEmptyIndices(newBoard);
             const result = checkWinner(newBoard, false);
 
             if (result.winner === 'X') return { score: -10 };
@@ -1181,8 +1216,16 @@
 
         function createGame() {
             if (!db) { alert("Firebase is not connected."); return; }
-            const roomInput = document.getElementById('roomIdInput').value.trim().toUpperCase();
-            if (roomInput.length < 3) { alert("Room ID must be at least 3 characters."); return; }
+            let roomInput = document.getElementById('roomIdInput').value.trim().toUpperCase();
+            
+            // Generate random code if input is empty
+            if (roomInput.length === 0) {
+                roomInput = generateRandomCode();
+            } else if (roomInput.length < 3) { 
+                alert("Room ID must be at least 3 characters."); 
+                return; 
+            }
+            
             roomId = roomInput;
             localPlayer = 'X';
             const playerName = document.getElementById('onlinePlayerName').value || 'Host X';
@@ -1208,7 +1251,7 @@
                     roomId = null;
                 } else {
                     roomRef.set(initialGameState).then(() => {
-                        document.getElementById('onlineStatus').textContent = `Game created! ID: ${roomId}. Waiting for Player O...`;
+                        document.getElementById('onlineStatus').innerHTML = `Game created! Code: <strong>${roomId}</strong>. Waiting for Player O...`;
                         document.getElementById('startGameOnlineBtn').style.display = 'block';
                         syncLobbyState();
                     }).catch(error => {
@@ -1229,18 +1272,18 @@
             const roomRef = db.ref('games/' + roomId);
             roomRef.once('value', snapshot => {
                 if (!snapshot.exists()) {
-                    alert("No game found with this ID.");
+                    alert("Room not found with code: " + roomId);
                     roomId = null;
                     localPlayer = null;
                 } else if (snapshot.val().playerOName !== 'Waiting for Opponent...') {
-                    alert("This game is already full.");
+                    alert("Game full. This room already has two players.");
                     roomId = null;
                     localPlayer = null;
                 } else {
                     // Update the room state with Player O's name and set the board size
                     const gameState = snapshot.val();
                     const newBoardSize = gameState.boardSize || 3;
-                    setBoardSize(newBoardSize, null, true); // Update local size
+                    setBoardSize(newBoardSize, null, true, 'online-lobby'); // Update local size
 
                     roomRef.update({
                         playerOName: playerName
@@ -1262,7 +1305,7 @@
             roomRef.off(); // Remove previous listeners
             roomRef.on('value', snapshot => {
                  if (!snapshot.exists()) {
-                    alert("The room was closed by the host.");
+                    alert("Opponent disconnected and the room was closed by the host.");
                     roomId = null;
                     localPlayer = null;
                     showScreen('online-lobby');
@@ -1272,10 +1315,10 @@
                 playerNames['X'] = gameState.playerXName || 'Player X';
                 playerNames['O'] = gameState.playerOName || 'Waiting...';
                 
-                document.getElementById('onlineStatus').textContent = `Room ID: ${roomId}. X: ${playerNames['X']} | O: ${playerNames['O']}`;
+                document.getElementById('onlineStatus').innerHTML = `Room ID: <strong>${roomId}</strong>. X: ${playerNames['X']} | O: ${playerNames['O']}`;
                 
                 // If both players are present, allow both to see the Go to Game button
-                if (playerNames['O'] !== 'Waiting for Opponent...') {
+                if (playerNames['O'] && !playerNames['O'].includes('Waiting')) {
                     document.getElementById('startGameOnlineBtn').style.display = 'block';
                 } else {
                     document.getElementById('startGameOnlineBtn').style.display = 'none';
@@ -1408,7 +1451,7 @@
                 isSystem: isSystem
             };
             
-            if (!isSystem) {
+            if (!isSystem && !isEmoji) {
                 chatInput.value = '';
             }
 
@@ -1422,6 +1465,9 @@
             const chatRef = db.ref('games/' + roomId + '/chat');
             chatRef.off(); // Remove previous listener
             
+            // Clear previous messages to avoid duplicates
+            chatMessagesDiv.innerHTML = ''; 
+
             chatRef.limitToLast(20).on('child_added', snapshot => {
                 const message = snapshot.val();
                 
@@ -1506,3 +1552,4 @@
     </script>
 </body>
 </html>
+

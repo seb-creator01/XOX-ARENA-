@@ -228,6 +228,9 @@
         #muteBtn { right: 10px; }
         #backBtn { left: 10px; display: none; }
         #chatOpenBtn { right: 100px; display: none; } 
+        /* NEW: Exit Button Position */
+        #exitOnlineBtn { right: 10px; display: none; } 
+
 
         /* --- GAME BOARD --- */
         #game { 
@@ -432,6 +435,8 @@
     <button id="muteBtn" onclick="toggleMute()" class="fixed-control">🔊</button>
     <button id="backBtn" onclick="handleBack(true)" class="fixed-control">← Back</button>
     <button id="chatOpenBtn" onclick="toggleChatOverlay()" class="fixed-control">💬 Chat</button>
+    <button id="exitOnlineBtn" onclick="handleExitOnlineMode()" class="fixed-control" style="background: #f44336; color: var(--color-text-dark);">🚪 Exit</button>
+
 
     <div id="splash-screen" class="screen">
         <p>Seb Creations Presents</p>
@@ -472,6 +477,7 @@
                 <button id="aiSize3x3Btn" onclick="setBoardSize(3, this, false, 'ai-config')" class="active">3x3 (3-in-a-Row)</button>
                 <button disabled>4x4 (N/A)</button>
                 <button disabled>5x5 (N/A)</button>
+                <button disabled>6x6 (N/A)</button>
             </div>
             
              <input type="text" id="playerNameAIAI" placeholder="Your Name (X)" value="Player X" maxlength="15" style="margin: 20px auto; width: 80%;">
@@ -495,6 +501,7 @@
                 <button id="size3x3Btn" onclick="setBoardSize(3, this)">3x3 (3-in-a-Row)</button>
                 <button onclick="setBoardSize(4, this)">4x4 (4-in-a-Row)</button>
                 <button onclick="setBoardSize(5, this)">5x5 (5-in-a-Row)</button>
+                <button onclick="setBoardSize(6, this)">6x6 (5-in-a-Row)</button>
             </div>
           
             <div id="playerNames" style="display: flex; flex-direction: column; margin: 20px 0;">
@@ -521,6 +528,7 @@
                     <button id="onlineSize3x3Btn" onclick="setBoardSize(3, this, false, 'online-lobby')">3x3</button>
                     <button onclick="setBoardSize(4, this, false, 'online-lobby')">4x4</button>
                     <button onclick="setBoardSize(5, this, false, 'online-lobby')">5x5</button>
+                    <button onclick="setBoardSize(6, this, false, 'online-lobby')">6x6</button>
                 </div>
                 
                 <input type="text" id="roomIdInput" placeholder="Enter Room ID" style="margin: 20px 0;">
@@ -709,6 +717,9 @@
         const nameScoreO = document.getElementById('nameScoreO');
         const chatOverlay = document.getElementById('chat-overlay');
         const postGameActionsDiv = document.getElementById('post-game-actions');
+        // NEW: Exit Online Button DOM
+        const exitOnlineBtn = document.getElementById('exitOnlineBtn');
+
         
         // --- UI & STATE HANDLERS ---
         function setTheme(theme) {
@@ -801,7 +812,11 @@
             currentScreen = screenId;
             
             // UI Controls
-            backBtn.style.display = (screenId === 'home-screen' || screenId === 'splash-screen') ? 'none' : 'block';
+            // NEW: Updated back button logic to show 'Exit' button instead in online game
+            const isOnlineGame = isGameScreen && mode === 'online';
+            backBtn.style.display = (screenId === 'home-screen' || screenId === 'splash-screen' || isOnlineGame) ? 'none' : 'block';
+            exitOnlineBtn.style.display = isOnlineGame ? 'block' : 'none';
+
             timerDisplay.style.display = isGameScreen ? 'block' : 'none';
             chatOpenBtn.style.display = (isGameScreen && mode === 'online') ? 'block' : 'none';
             
@@ -841,7 +856,13 @@
             } else if (screenId === 'online-lobby') {
                 mode = 'online';
                 document.getElementById('onlinePlayerName').disabled = false;
-                setBoardSize(boardSize, document.getElementById('onlineSize3x3Btn'), false, 'online-lobby');
+                // NEW: Ensure board size selection is active when returning to lobby
+                if (roomId) {
+                    // If returning from a game, sync to host's size, but keep local state
+                    // The syncGame function will handle the board size sync based on DB
+                } else {
+                     setBoardSize(3, document.getElementById('onlineSize3x3Btn'), false, 'online-lobby');
+                }
             }
         }
 
@@ -864,23 +885,52 @@
             stopTimer();
 
             if (currentScreen === 'game-screen') {
-                if (mode === 'online') {
-                    showScreen('online-lobby');
-                } else if (mode === 'ai') {
+                 // Should be handled by handleExitOnlineMode if mode is online
+                if (mode === 'ai') {
                     showScreen('ai-config');
                 } else {
                     showScreen('local-config');
                 }
             } else if (currentScreen === 'online-lobby' || currentScreen === 'local-config' || currentScreen === 'ai-config') {
                 if (mode === 'online' && roomId && db) {
+                    // Clean up DB listeners but don't delete the room if the user is just navigating
                     db.ref('games/' + roomId).off();
-                    db.ref('games/' + roomId).remove();
                     roomId = null;
                     localPlayer = null;
                 }
                 showScreen('home-screen');
             }
         }
+
+        // NEW: Exit Online Mode Handler
+        function handleExitOnlineMode() {
+            if (!confirm("Are you sure you want to leave the game? This will close the room for your opponent if you are Player X.")) {
+                return;
+            }
+            stopTimer();
+            if (mode === 'online' && roomId && db) {
+                db.ref('games/' + roomId).off(); // Stop listening
+                if (localPlayer === 'X') {
+                    // Player X (Host) deletes the room
+                    db.ref('games/' + roomId).remove().then(() => {
+                         console.log("Online game room deleted.");
+                    });
+                } else if (localPlayer === 'O') {
+                    // Player O updates the room to indicate they have left
+                    db.ref('games/' + roomId).update({
+                        playerO: false,
+                        playerOName: 'Left Game',
+                        lastMoveTime: firebase.database.ServerValue.TIMESTAMP 
+                    });
+                }
+                roomId = null;
+                localPlayer = null;
+            }
+            showScreen('online-lobby');
+            onlineStatusP.textContent = "You left the game. Enter an ID or create a new game.";
+            startGameOnlineBtn.style.display = 'none';
+        }
+
 
         // --- TIMER LOGIC ---
         function startTimer(startTime) {
@@ -966,13 +1016,17 @@
         
         // --- Core Game Logic Functions ---
         function getWinLength(size) {
-            return size;
+            // NEW: Updated Win Length logic for larger boards
+            if (size <= 3) return 3;
+            if (size === 4) return 4;
+            if (size >= 5) return 5;
         }
 
         function setBoardSize(size, button, skipReset = false, location = 'local-config') {
             const previousSize = boardSize;
             boardSize = size;
             const newBoardLength = size * size;
+            const winLength = getWinLength(size);
 
             if (!skipReset && previousSize !== size) {
                 board = Array(newBoardLength).fill('');
@@ -1002,10 +1056,29 @@
                     }
                 });
             }
+            
+            // NEW: Update display text for buttons
+            if (location === 'local-config') {
+                document.getElementById('size3x3Btn').textContent = `3x3 (${getWinLength(3)}-in-a-Row)`;
+                document.querySelector('#boardSizeControls button:nth-child(2)').textContent = `4x4 (${getWinLength(4)}-in-a-Row)`;
+                document.querySelector('#boardSizeControls button:nth-child(3)').textContent = `5x5 (${getWinLength(5)}-in-a-Row)`;
+                document.querySelector('#boardSizeControls button:nth-child(4)').textContent = `6x6 (${getWinLength(6)}-in-a-Row)`;
+            }
 
             // Update lobby display if applicable
             if (location === 'online-lobby') {
                 lobbyBoardSizeSpan.textContent = `${size}x${size}`;
+                // NEW: If online game is active, update the DB with new size
+                if (roomId && localPlayer === 'X' && db && skipReset === false && previousSize !== size) {
+                    // Player X (Host) updates the size, which will trigger sync for Player O
+                    db.ref('games/' + roomId).update({
+                        boardSize: size,
+                        board: Array(newBoardLength).fill(''), // Reset board on size change
+                        gameActive: true,
+                        currentPlayer: 'X',
+                        lastMoveTime: firebase.database.ServerValue.TIMESTAMP
+                    }).catch(e => console.error("Error updating board size:", e));
+                }
             }
 
             if (!skipReset) {
@@ -1055,7 +1128,8 @@
 
             if (currentScreen === 'game-screen') {
                 postGameActionsDiv.style.display = gameActive ? 'none' : 'block';
-                if (mode === 'online') postGameActionsDiv.style.display = 'none'; // No rematch in online
+                // NEW: Rematch button hidden in online mode
+                if (mode === 'online') postGameActionsDiv.style.display = 'none'; 
 
                 if (mode === 'online' && localPlayer) {
                     if (!gameActive) {
@@ -1143,17 +1217,21 @@
                 [1, -1] // Anti-Diagonal (/)
             ];
 
+            // NEW: Only need to check for winning lines that *start* within the valid range
             for (let r = 0; r < size; r++) {
                 for (let c = 0; c < size; c++) {
                     if (currentBoard[index(r, c)]) {
                         for (let [dr, dc] of directions) {
-                            const result = checkLine(r, c, dr, dc);
-                            if (result) {
-                                if (updateGlobalState) {
-                                    gameActive = false;
-                                    stopTimer();
+                            // Boundary check for the *end* of the line (r + (N-1)*dr)
+                            if (isValid(r + (N - 1) * dr, c + (N - 1) * dc)) {
+                                const result = checkLine(r, c, dr, dc);
+                                if (result) {
+                                    if (updateGlobalState) {
+                                        gameActive = false;
+                                        stopTimer();
+                                    }
+                                    return result;
                                 }
-                                return result;
                             }
                         }
                     }
@@ -1262,15 +1340,20 @@
 
         function createGame() {
             if (!db) return;
-            roomId = roomIdInput.value.trim() || generateRoomId();
+            // NEW: Use input ID if provided, otherwise generate
+            roomId = roomIdInput.value.trim() || generateRoomId(); 
             localPlayer = 'X';
             playerNames['X'] = document.getElementById('onlinePlayerName').value.trim() || 'Player X';
             playerNames['O'] = 'Waiting...';
             loadingSpinnerOnline.style.display = 'block';
 
+            // NEW: Get current board size from state
+            const currentBoardSize = boardSize; 
+            const newBoardLength = currentBoardSize * currentBoardSize;
+
             db.ref('games/' + roomId).set({
-                board: Array(boardSize * boardSize).fill(''),
-                boardSize: boardSize,
+                board: Array(newBoardLength).fill(''),
+                boardSize: currentBoardSize, // Use current state size
                 currentPlayer: 'X',
                 gameActive: true,
                 playerX: true,
@@ -1307,9 +1390,12 @@
             loadingSpinnerOnline.style.display = 'block';
             
             db.ref('games/' + roomId).once('value', snapshot => {
-                if (snapshot.exists() && !snapshot.val().playerO) {
+                const gameState = snapshot.val();
+                if (snapshot.exists() && !gameState.playerO) {
                     localPlayer = 'O';
-                    const gameState = snapshot.val();
+                    // NEW: Set the joining player's local board size to the host's board size
+                    boardSize = gameState.boardSize; 
+                    setBoardSize(boardSize, null, true, 'online-lobby');
                     playerNames['X'] = gameState.playerXName;
 
                     db.ref('games/' + roomId).update({
@@ -1317,7 +1403,7 @@
                         playerOName: playerNames['O'],
                         lastMoveTime: firebase.database.ServerValue.TIMESTAMP
                     }).then(() => {
-                        onlineStatusP.textContent = `Joined game ${roomId}!`;
+                        onlineStatusP.textContent = `Joined game ${roomId}! The game size is ${boardSize}x${boardSize}.`;
                         startGameOnlineBtn.style.display = 'block';
                         loadingSpinnerOnline.style.display = 'none';
                         showScreen('game-screen', true);
@@ -1342,8 +1428,7 @@
                     db.ref('games/' + roomId).off(); 
                     if (currentScreen === 'game-screen' || currentScreen === 'online-lobby') {
                         alert("Opponent disconnected or the room was closed. Returning to lobby.");
-                        showScreen('online-lobby');
-                        onlineStatusP.textContent = "Opponent disconnected. Please create or join a new game.";
+                        handleExitOnlineMode(); // Use the exit handler to clean up local state
                     }
                     return;
                 }
@@ -1353,8 +1438,10 @@
                 // Update local names and board size from the host's state
                 playerNames['X'] = gameState.playerXName || 'Player X';
                 playerNames['O'] = gameState.playerOName || 'Waiting...';
+                
+                // NEW: Sync board size from DB
                 if (gameState.boardSize && gameState.boardSize !== boardSize) {
-                    setBoardSize(gameState.boardSize, null, true);
+                    setBoardSize(gameState.boardSize, null, false); // Do not skip reset, reset game for new size
                 }
                 
                 const prevGameActive = gameActive;

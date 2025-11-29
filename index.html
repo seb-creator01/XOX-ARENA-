@@ -473,13 +473,15 @@
 
 
     <div id="splash-screen" class="screen">
-        <p>Seb Creations Presents</p>
-        <h1>XOX ARENA</h1>
-        <p id="tagline">“Think Fast. Strike Smart. Rule the Grid.”</p>
-        
-        <button id="play-button" onclick="handlePlayClick()">PLAY GAME</button>
-        
-        <div id="loading-spinner"></div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <p>Seb Creations Presents</p>
+            <h1>XOX ARENA</h1>
+            <p id="tagline">“Think Fast. Strike Smart. Rule the Grid.”</p>
+            
+            <button id="play-button" onclick="handlePlayClick()">PLAY GAME</button>
+            
+            <div id="loading-spinner"></div>
+        </div>
     </div>
 
     <div id="home-screen" class="screen">
@@ -858,17 +860,21 @@
             // UI Controls
             // Check if we are in an established online mode
             const isOnlineModeActive = mode === 'online' && (roomId !== null); 
+            
+            // Back button logic: Hide if on Home/Splash, or if in active Online Mode (use Exit button instead)
             backBtn.style.display = (screenId === 'home-screen' || screenId === 'splash-screen' || isOnlineModeActive) ? 'none' : 'block';
+            
+            // Exit Online button logic
             exitOnlineBtn.style.display = isOnlineModeActive && screenId !== 'home-screen' ? 'block' : 'none'; 
 
-            timerDisplay.style.display = isGameScreen ? 'block' : 'none';
-            
             // Chat button is visible in online-lobby and game-screen if a room is active
             chatOpenBtn.style.display = (isOnlineModeActive && (screenId === 'game-screen' || screenId === 'online-lobby')) ? 'block' : 'none';
             if (!isOnlineModeActive) {
                 updateChatBadge(0, true); // Reset badge when leaving online mode
             }
-
+            
+            timerDisplay.style.display = isGameScreen ? 'block' : 'none';
+            
             manageMusic(screenId);
             stopTimer();
             toggleChatOverlay(false); // Ensure chat is closed when switching screens
@@ -1530,14 +1536,16 @@
             }).then(() => {
                 document.getElementById('onlineStatus').innerHTML = `Game created! Your ID is: <strong>${roomId}</strong>. Waiting for Player O...`;
                 roomIdInput.value = roomId;
-                // Show chat button immediately in the lobby
-                chatOpenBtn.style.display = 'block'; 
                 document.getElementById('onlineScoreLocal').textContent = '0';
                 document.getElementById('onlineScoreOpponent').textContent = '0';
                 document.getElementById('onlineScoreDraws').textContent = '0';
                 syncGame();
                 syncChat(); // Start listening for chat immediately
                 loadingSpinnerOnline.style.display = 'none';
+                
+                // CRITICAL ADDITION: Re-call showScreen to refresh UI controls (makes chat button appear)
+                showScreen('online-lobby'); 
+                
             }).catch(e => {
                 document.getElementById('onlineStatus').textContent = `Error creating game: ${e.message}`;
                 loadingSpinnerOnline.style.display = 'none';
@@ -1573,10 +1581,12 @@
                         onlineStatusP.textContent = `Joined game ${roomId}! The game size is ${boardSize}x${boardSize}. Ready to play.`;
                         startGameOnlineBtn.style.display = 'block';
                         loadingSpinnerOnline.style.display = 'none';
-                        // Show chat button immediately in the lobby
-                        chatOpenBtn.style.display = 'block';
                         syncChat(); // Start listening for chat immediately
                         syncGame(); // Start game sync
+                        
+                        // CRITICAL ADDITION: Re-call showScreen to refresh UI controls (makes chat button appear)
+                        showScreen('online-lobby');
+                        
                     }).catch(e => {
                         onlineStatusP.textContent = `Error joining game: ${e.message}`;
                         loadingSpinnerOnline.style.display = 'none';

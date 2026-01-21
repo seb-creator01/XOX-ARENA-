@@ -498,6 +498,65 @@
         #post-game-actions {
             margin-top: 20px;
         }
+
+        /* --- UPDATED: AVATAR STYLES --- */
+        .avatar-selection {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .avatar-option {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+            background-color: var(--color-cell-bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+        }
+        .avatar-option.selected {
+            border-color: var(--color-secondary-accent);
+            transform: scale(1.1);
+            box-shadow: 0 0 10px var(--color-secondary-accent);
+        }
+        .player-avatar-display {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--color-cell-bg);
+            margin-right: 8px;
+            vertical-align: middle;
+            font-size: 1.2rem;
+        }
+
+        /* --- UPDATED: MUSIC JUKEBOX STYLES --- */
+        .music-station {
+            background: var(--color-panel-bg);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 20px 0;
+            border: 1px solid var(--color-primary-accent);
+        }
+        .music-grid {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .music-btn {
+            padding: 8px 15px;
+            font-size: 0.8rem;
+            margin: 0;
+            background: var(--color-cell-bg);
+        }
     </style>
 </head>
 <body id="app-body">
@@ -529,13 +588,22 @@
             <h1>XOX ARENA</h1>
             <p id="tagline" style="margin-top: 0;">“Think Fast. Strike Smart. Rule the Grid.”</p>
             
-            <div id="theme-controls" style="margin-bottom: 30px;">
+            <div id="theme-controls" style="margin-bottom: 20px;">
                 <h3>Theme</h3>
                 <button onclick="setTheme('dark')" class="active">Dark (Neon)</button>
                 <button onclick="setTheme('light')">Light</button>
             </div>
+
+            <div class="music-station">
+                <h3>🎵 Music Station</h3>
+                <div class="music-grid">
+                    <button class="music-btn active" id="track1Btn" onclick="changeMusic('sci-fi', this)">Sci-Fi</button>
+                    <button class="music-btn" id="track2Btn" onclick="changeMusic('cyber', this)">Cyber</button>
+                    <button class="music-btn" id="track3Btn" onclick="changeMusic('retro', this)">Retro</button>
+                </div>
+            </div>
             
-            <div id="main-controls" style="display: flex; flex-direction: column; align-items: center; margin-top: 50px;">
+            <div id="main-controls" style="display: flex; flex-direction: column; align-items: center; margin-top: 20px;">
                 <button onclick="showScreen('local-config')" class="neon-button">LOCAL 2-PLAYER</button>
                 <button onclick="showScreen('ai-config')" class="neon-button">PLAY AI</button> 
                 <button onclick="showScreen('online-lobby')" class="neon-button">ONLINE MULTIPLAYER</button>
@@ -557,6 +625,14 @@
             </div>
             
              <input type="text" id="playerNameAIAI" placeholder="Your Name (X)" value="Player X" maxlength="15" style="margin: 20px auto; width: 80%;">
+
+            <h3>Choose Your Avatar</h3>
+            <div class="avatar-selection" id="aiAvatarSelect">
+                <div class="avatar-option selected" onclick="selectAvatar('X', '👤', this)">👤</div>
+                <div class="avatar-option" onclick="selectAvatar('X', '🐱', this)">🐱</div>
+                <div class="avatar-option" onclick="selectAvatar('X', '🦊', this)">🦊</div>
+                <div class="avatar-option" onclick="selectAvatar('X', '🤖', this)">🤖</div>
+            </div>
 
             <div id="aiDifficultyControls" style="margin-top: 15px;">
                 <h3>Select AI Difficulty (O)</h3>
@@ -582,7 +658,18 @@
           
             <div id="playerNames" style="display: flex; flex-direction: column; margin: 20px 0;">
                 <input type="text" id="playerNameX" placeholder="Player X Name" value="Player X" maxlength="15" style="margin-bottom: 10px;">
+                <div class="avatar-selection" id="localXAvatarSelect">
+                    <div class="avatar-option selected" onclick="selectAvatar('X', '👤', this)">👤</div>
+                    <div class="avatar-option" onclick="selectAvatar('X', '🐱', this)">🐱</div>
+                    <div class="avatar-option" onclick="selectAvatar('X', '🦊', this)">🦊</div>
+                </div>
+                
                 <input type="text" id="playerNameO" placeholder="Player O Name" value="Player O" maxlength="15">
+                <div class="avatar-selection" id="localOAvatarSelect">
+                    <div class="avatar-option selected" onclick="selectAvatar('O', '👥', this)">👥</div>
+                    <div class="avatar-option" onclick="selectAvatar('O', '🐼', this)">🐼</div>
+                    <div class="avatar-option" onclick="selectAvatar('O', '🐯', this)">🐯</div>
+                </div>
             </div>
 
             <div id="modeControls">
@@ -608,8 +695,16 @@
                 </div>
                 
                 <input type="text" id="roomIdInput" placeholder="Enter Room ID" style="margin: 20px 0;">
-                <input type="text" id="onlinePlayerName" placeholder="Your Name (Max 15 chars)" value="Online Player" maxlength="15" style="margin-bottom: 20px;">
+                <input type="text" id="onlinePlayerName" placeholder="Your Name (Max 15 chars)" value="Online Player" maxlength="15" style="margin-bottom: 10px;">
                 
+                <h3>Choose Avatar</h3>
+                <div class="avatar-selection" id="onlineAvatarSelect">
+                    <div class="avatar-option selected" onclick="selectAvatar('online', '👤', this)">👤</div>
+                    <div class="avatar-option" onclick="selectAvatar('online', '👻', this)">👻</div>
+                    <div class="avatar-option" onclick="selectAvatar('online', '👽', this)">👽</div>
+                    <div class="avatar-option" onclick="selectAvatar('online', '💀', this)">💀</div>
+                </div>
+
                 <button onclick="createGame()">CREATE GAME (I am X)</button>
                 <button onclick="joinGame()">JOIN GAME (I am O)</button>
                 
@@ -689,6 +784,7 @@
 
     <audio id="menuMusic" loop src="https://assets.mixkit.co/music/preview/mixkit-sci-fi-game-intro-2426.mp3" preload="auto"></audio> 
     <audio id="gameMusic" loop src="https://assets.mixkit.co/music/preview/mixkit-cyber-attack-1335.mp3" preload="auto"></audio> 
+    <audio id="retroMusic" loop src="https://assets.mixkit.co/music/preview/mixkit-glitchy-scifi-04-531.mp3" preload="auto"></audio>
     
     <audio id="clickSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-button-click-1944.mp3" preload="auto"></audio>
     <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-complete-2051.mp3" preload="auto"></audio>
@@ -751,6 +847,16 @@
             'X': 'Player X',
             'O': 'Player O'
         };
+
+        // NEW FEATURE: AVATAR STATE
+        let playerAvatars = {
+            'X': '👤',
+            'O': '👥'
+        };
+
+        // NEW FEATURE: MUSIC TRACKS STATE
+        let currentMusicTrack = 'sci-fi';
+
         // --- Timer State Variables ---
         let timerInterval = null;
         let localMoveStartTime = Date.now();
@@ -767,6 +873,7 @@
         // MUSIC ELEMENTS
         const menuMusic = document.getElementById('menuMusic'); 
         const gameMusic = document.getElementById('gameMusic');
+        const retroMusic = document.getElementById('retroMusic'); // Added
         // SOUND EFFECT ELEMENTS
         const clickSound = document.getElementById('clickSound');
         const winSound = document.getElementById('winSound');
@@ -811,15 +918,37 @@
         function setTheme(theme) {
             if (theme === 'light') {
                 appBody.classList.add('light-theme');
-                document.querySelector('#theme-controls button:nth-child(2)').classList.add('active');
-                document.querySelector('#theme-controls button:nth-child(1)').classList.remove('active');
+                document.querySelector('#theme-controls button:nth-child(3)').classList.add('active');
+                document.querySelector('#theme-controls button:nth-child(2)').classList.remove('active');
             } else {
                 appBody.classList.remove('light-theme');
-                document.querySelector('#theme-controls button:nth-child(1)').classList.add('active');
-                document.querySelector('#theme-controls button:nth-child(2)').classList.remove('active');
+                document.querySelector('#theme-controls button:nth-child(2)').classList.add('active');
+                document.querySelector('#theme-controls button:nth-child(3)').classList.remove('active');
             }
         }
         
+        // UPDATED: Dynamic Music Picker
+        function getActiveMusic() {
+            if (currentMusicTrack === 'sci-fi') return menuMusic;
+            if (currentMusicTrack === 'cyber') return gameMusic;
+            if (currentMusicTrack === 'retro') return retroMusic;
+            return menuMusic;
+        }
+
+        function changeMusic(trackName, btn) {
+            // Stop everything
+            stopMusic(menuMusic);
+            stopMusic(gameMusic);
+            stopMusic(retroMusic);
+            
+            currentMusicTrack = trackName;
+            setActiveButton('music-station', btn);
+            
+            if (!isMuted) {
+                playMusic(getActiveMusic(), 0.3);
+            }
+        }
+
         function playMusic(audioElem, volume = 0.3) {
             if (!isMuted && audioElem && audioElem.paused) {
                 audioElem.volume = volume;
@@ -843,15 +972,14 @@
         }
         
         function manageMusic(screenId) {
-            if (screenId === 'game-screen') {
-                stopMusic(menuMusic);
-                playMusic(gameMusic, 0.4);
-            } else if (screenId === 'splash-screen' || screenId === 'home-screen' || screenId === 'online-lobby' || screenId === 'local-config' || screenId === 'ai-config') {
-                stopMusic(gameMusic);
-                playMusic(menuMusic, 0.3);
+            // Updated to respect user's choice in Jukebox
+            const active = getActiveMusic();
+            if (screenId === 'game-screen' || screenId === 'splash-screen' || screenId === 'home-screen' || screenId === 'online-lobby' || screenId === 'local-config' || screenId === 'ai-config') {
+                playMusic(active, 0.3);
             } else {
                 stopMusic(menuMusic);
                 stopMusic(gameMusic);
+                stopMusic(retroMusic);
             }
         }
 
@@ -863,8 +991,8 @@
             if (playButton) playButton.style.display = 'none';
             if (loadingSpinner) loadingSpinner.style.display = 'block';
 
-            // Initial music start (menuMusic will start) - Must be triggered by user action!
-            playMusic(menuMusic, 0.3);
+            // Initial music start (respecting Jukebox selection)
+            playMusic(getActiveMusic(), 0.3);
 
             setTimeout(() => {
                 showScreen('home-screen');
@@ -929,7 +1057,10 @@
                     // Load names from inputs
                     playerNames['X'] = document.getElementById(mode === 'ai' ? 'playerNameAIAI' : 'playerNameX').value || 'Player X';
                     playerNames['O'] = document.getElementById(mode === 'ai' ? 'playerNameAIAI' : 'playerNameO').value || 'Player O';
-                    if(mode === 'ai') playerNames['O'] = 'AI Bot (' + aiDifficulty.charAt(0).toUpperCase() + ')';
+                    if(mode === 'ai') {
+                         playerNames['O'] = 'AI Bot (' + aiDifficulty.charAt(0).toUpperCase() + ')';
+                         playerAvatars['O'] = '🤖'; // Force robot avatar for AI
+                    }
                     
                     updatePlayerNamesDisplay();
                     gameTitle.textContent = mode === 'local' ? 'LOCAL FRIEND GAME' : `AI GAME (${aiDifficulty.toUpperCase()})`;
@@ -968,11 +1099,23 @@
             }
         }
 
+        // UPDATED: Support for Avatars in display
         function updatePlayerNamesDisplay() {
-            nameXDisplay.innerHTML = `X: <strong>${playerNames['X']}</strong>`;
-            nameODisplay.innerHTML = `O: <strong>${playerNames['O']}</strong>`;
+            nameXDisplay.innerHTML = `<span class="player-avatar-display">${playerAvatars['X']}</span> X: <strong>${playerNames['X']}</strong>`;
+            nameODisplay.innerHTML = `<span class="player-avatar-display">${playerAvatars['O']}</span> O: <strong>${playerNames['O']}</strong>`;
             nameScoreX.textContent = playerNames['X'];
             nameScoreO.textContent = playerNames['O'];
+        }
+
+        function selectAvatar(playerKey, avatarChar, btn) {
+            if (playerKey === 'online') {
+                playerAvatars['local'] = avatarChar; // Temp storage for online join/create
+                setActiveButton('onlineAvatarSelect', btn);
+            } else {
+                playerAvatars[playerKey] = avatarChar;
+                const containerId = playerKey === 'X' ? (mode === 'ai' ? 'aiAvatarSelect' : 'localXAvatarSelect') : 'localOAvatarSelect';
+                setActiveButton(containerId, btn);
+            }
         }
 
         function toggleChatOverlay(toggle = true) {
@@ -1234,6 +1377,7 @@
             // Set initial player names for the UI config
             if (mode === 'ai') {
                  playerNames['O'] = 'AI Bot (' + aiDifficulty.charAt(0).toUpperCase() + ')';
+                 playerAvatars['O'] = '🤖';
             } else if (mode === 'local') {
                  playerNames['X'] = document.getElementById('playerNameX').value || 'Player X';
                  playerNames['O'] = document.getElementById('playerNameO').value || 'Player O';
@@ -1411,7 +1555,7 @@
             onlineScoreLocal.textContent = localWinCount;
             onlineScoreOpponent.textContent = opponentWinCount;
             onlineScoreDraws.textContent = scores.draws;
-            localPlayerDisplay.textContent = `${localPlayer} (${playerNames[localPlayer]})`;
+            localPlayerDisplay.innerHTML = `<span class="player-avatar-display">${playerAvatars[localPlayer]}</span> ${localPlayer} (${playerNames[localPlayer]})`;
         }
 
         function resetGame() {
@@ -1426,11 +1570,13 @@
         }
 
         function setActiveButton(containerId, activeButton) {
-            document.querySelectorAll(`#${containerId} button`).forEach(btn => {
+            document.querySelectorAll(`#${containerId} button, #${containerId} .avatar-option`).forEach(btn => {
                 btn.classList.remove('active');
+                btn.classList.remove('selected');
             });
             if (activeButton) {
                 activeButton.classList.add('active');
+                activeButton.classList.add('selected');
             }
         }
         
@@ -1578,6 +1724,10 @@
             localPlayer = 'X';
             playerNames['X'] = document.getElementById('onlinePlayerName').value.trim() || 'Player X';
             playerNames['O'] = 'Waiting...';
+            
+            // Set Avatar for Online Host
+            playerAvatars['X'] = playerAvatars['local'] || '👤';
+
             loadingSpinnerOnline.style.display = 'block';
 
             // Get current board size from state
@@ -1593,6 +1743,8 @@
                 playerO: false,
                 playerXName: playerNames['X'],
                 playerOName: playerNames['O'],
+                playerXAvatar: playerAvatars['X'], // Store avatar
+                playerOAvatar: '',
                 scores: { scoreX: 0, scoreO: 0, draws: 0 },
                 lastMoveTime: firebase.database.ServerValue.TIMESTAMP,
                 rematchRequest: false,
@@ -1621,6 +1773,9 @@
             roomId = roomIdInput.value.trim();
             localPlayer = 'O'; // Assume joiner is O
             playerNames['O'] = document.getElementById('onlinePlayerName').value.trim() || 'Player O';
+            
+            // Set Avatar for Online Joiner
+            playerAvatars['O'] = playerAvatars['local'] || '👤';
 
             if (!roomId) {
                 document.getElementById('onlineStatus').textContent = "Please enter a Room ID.";
@@ -1636,10 +1791,12 @@
                     boardSize = gameState.boardSize; 
                     setBoardSize(boardSize, null, true, 'online-lobby');
                     playerNames['X'] = gameState.playerXName;
+                    playerAvatars['X'] = gameState.playerXAvatar;
 
                     db.ref('games/' + roomId).update({
                         playerO: true,
                         playerOName: playerNames['O'],
+                        playerOAvatar: playerAvatars['O'], // Sync avatar
                         lastMoveTime: firebase.database.ServerValue.TIMESTAMP
                     }).then(() => {
                         onlineStatusP.textContent = `Joined game ${roomId}! The game size is ${boardSize}x${boardSize}. Ready to play.`;
@@ -1688,6 +1845,10 @@
                 playerNames['X'] = gameState.playerXName || 'Player X';
                 playerNames['O'] = gameState.playerOName || 'Waiting...';
                 
+                // Sync Avatars Online
+                playerAvatars['X'] = gameState.playerXAvatar || '👤';
+                playerAvatars['O'] = gameState.playerOAvatar || '👥';
+
                 // Player O joined status check
                 playerOJoined = gameState.playerO || false;
 
@@ -1966,6 +2127,7 @@
             if (isMuted) {
                 stopMusic(menuMusic);
                 stopMusic(gameMusic);
+                stopMusic(retroMusic);
             } else {
                 manageMusic(currentScreen);
             }

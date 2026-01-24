@@ -1,0 +1,21 @@
+{
+  "name": "XOX ARENA",
+  "short_name": "XOXArena",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#00bfff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192.png?text=XOX",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512.png?text=XOX+ARENA",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

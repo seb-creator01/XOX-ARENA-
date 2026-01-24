@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>☃️⛄🎅XOX ARENA🧑‍🎄🌲</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f0f0f">
+    <meta name="theme-color" content="#00bfff">
+    
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -102,10 +103,6 @@
             justify-content: center;
             align-items: center;
             flex-direction: column;
-            /* Added Background Branding */
-            background: linear-gradient(rgba(15,15,15,0.8), rgba(15,15,15,0.8)), url('https://images.unsplash.com/photo-1614850523296-e8c041de4398?auto=format&fit=crop&q=80&w=1000');
-            background-size: cover;
-            background-position: center;
         }
 
         #splash-screen h1 {
@@ -299,7 +296,6 @@
 
         #exitOnlineBtn { right: 10px; display: none; } 
 
-        /* --- GAME BOARD --- */
         #game { 
             grid-gap: 8px;
             padding: 10px;
@@ -367,7 +363,6 @@
             font-size: 0.9rem;
         }
         
-        /* --- CHAT OVERLAY --- */
         #chat-overlay {
             position: fixed;
             top: 0;
@@ -546,6 +541,20 @@
             margin: 0;
             background: var(--color-cell-bg);
         }
+
+        /* Install Button PWA */
+        #pwaInstallBtn {
+            display: none;
+            background: #ff00ff;
+            color: white;
+            border: 2px solid white;
+            animation: pulseInstall 2s infinite;
+        }
+        @keyframes pulseInstall {
+            0% { transform: scale(1); box-shadow: 0 0 0px #ff00ff; }
+            50% { transform: scale(1.05); box-shadow: 0 0 20px #ff00ff; }
+            100% { transform: scale(1); box-shadow: 0 0 0px #ff00ff; }
+        }
     </style>
 </head>
 <body id="app-body">
@@ -583,6 +592,8 @@
                 <button onclick="setTheme('light')">Light</button>
             </div>
 
+            <button id="pwaInstallBtn" onclick="installPWA()">📲 INSTALL APP</button>
+
             <div class="music-station">
                 <h3>🎵 Music Station</h3>
                 <div class="music-grid">
@@ -618,9 +629,9 @@
             <h3>Choose Your Avatar</h3>
             <div class="avatar-selection" id="aiAvatarSelect">
                 <div class="avatar-option selected" onclick="selectAvatar('X', '👤', this)">👤</div>
-                <div class="avatar-option" onclick="selectAvatar('X', '🐱', this)">🐱</div>
-                <div class="avatar-option" onclick="selectAvatar('X', '🦊', this)">🦊</div>
-                <div class="avatar-option" onclick="selectAvatar('X', '🤖', this)">🤖</div>
+                <div class="avatar-option" onclick="onAvatarSelect('X', '🐱', this)">🐱</div>
+                <div class="avatar-option" onclick="onAvatarSelect('X', ' foxes', this)">🦊</div>
+                <div class="avatar-option" onclick="onAvatarSelect('X', '🤖', this)">🤖</div>
             </div>
 
             <div id="aiDifficultyControls" style="margin-top: 15px;">
@@ -780,15 +791,7 @@
     <audio id="drawSound" src="https://assets.mixkit.co/sfx/preview/mixkit-small-bell-bell-251.mp3" preload="auto"></audio>
 
     <script>
-        // --- PWA SERVICE WORKER REGISTRATION ---
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker registered'))
-                    .catch(err => console.log('Service Worker failed', err));
-            });
-        }
-
+        
         // --- NEW SPLASH SCREEN HANDLER ---
         const LOADING_TIME_MS = 1000; 
 
@@ -843,8 +846,10 @@
         let timerInterval = null;
         let localMoveStartTime = Date.now();
         const TIME_LIMIT_SECONDS = 30; 
+        const TIMER_START_SECONDS = 0; 
         let autoResetTimeout = null;
         
+        // --- DOM Elements ---
         const gameDiv = document.getElementById('game'); 
         const aiControlsDiv = document.getElementById('aiDifficultyControls');
         const scoreX = document.getElementById('scoreX'); 
@@ -887,12 +892,30 @@
         
         let unreadMessageCount = 0; 
 
-        // --- HAPTIC FEEDBACK ---
-        function triggerVibrate(pattern = 50) {
-            if ("vibrate" in navigator) {
-                navigator.vibrate(pattern);
+        // --- PWA INSTALLATION LOGIC ---
+        let deferredPrompt;
+        const installBtn = document.getElementById('pwaInstallBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'block';
+        });
+
+        async function installPWA() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                installBtn.style.display = 'none';
             }
+            deferredPrompt = null;
         }
+
+        window.addEventListener('appinstalled', () => {
+            installBtn.style.display = 'none';
+            deferredPrompt = null;
+        });
 
         // --- UI & STATE HANDLERS ---
         function setTheme(theme) {
@@ -939,18 +962,14 @@
             }
         }
 
-        function stopMusic(audioElem) {
-            if (audioElem) audioElem.pause();
-        }
+        function stopMusic(audioElem) { if (audioElem) audioElem.pause(); }
         
         function manageMusic(screenId) {
             const active = getActiveMusic();
             if (['game-screen', 'splash-screen', 'home-screen', 'online-lobby', 'local-config', 'ai-config'].includes(screenId)) {
                 playMusic(active, 0.3);
             } else {
-                stopMusic(menuMusic);
-                stopMusic(gameMusic);
-                stopMusic(retroMusic);
+                stopMusic(menuMusic); stopMusic(gameMusic); stopMusic(retroMusic);
             }
         }
 
@@ -971,6 +990,7 @@
             }, LOADING_TIME_MS);
         }
 
+        // --- SCREEN MANAGEMENT ---
         function showScreen(screenId, isGameScreen = false) {
             document.querySelectorAll('.screen').forEach(screen => {
                 screen.classList.remove('active');
@@ -979,7 +999,7 @@
             const newScreen = document.getElementById(screenId);
             if (newScreen) {
                 newScreen.style.display = 'flex';
-                setTimeout(() => newScreen.classList.add('active'), 10); 
+                setTimeout(() => { newScreen.classList.add('active'); }, 10); 
             }
             currentScreen = screenId;
             const isOnlineModeActive = mode === 'online' && (roomId !== null); 
@@ -993,7 +1013,7 @@
             toggleChatOverlay(false);
             if (screenId === 'game-screen') {
                 if (mode !== 'online') {
-                    localPlayer = null; 
+                    localPlayer = null;
                     localScoreboardDiv.style.display = 'inline-block';
                     onlineScoreboardDiv.style.display = 'none';
                     playerNames['X'] = document.getElementById(mode === 'ai' ? 'playerNameAIAI' : 'playerNameX').value || 'Player X';
@@ -1008,7 +1028,7 @@
                     resetLocalTimer();
                 } else if (mode === 'online' && localPlayer) {
                     if (localPlayer === 'X' && !playerOJoined) {
-                        alert("Opponent has not joined yet.");
+                        alert("Opponent has not joined yet. Please wait in the lobby.");
                         showScreen('online-lobby');
                         return;
                     }
@@ -1025,12 +1045,11 @@
             } else if (screenId === 'ai-config') {
                 mode = 'ai';
                 setBoardSize(3, document.getElementById('aiSize3x3Btn'), false, 'ai-config');
-                startGame('ai', 'hard', document.querySelector('#aiDifficultyControls button:last-child'));
+                startGame('ai', 'hard', document.querySelector('#aiDifficultyControls button:last-child')); 
             } else if (screenId === 'online-lobby') {
                 mode = 'online';
                 document.getElementById('onlinePlayerName').disabled = false;
-                if (roomId && db) syncGame();
-                else setBoardSize(3, document.getElementById('onlineSize3x3Btn'), false, 'online-lobby');
+                if (!roomId) setBoardSize(3, document.getElementById('onlineSize3x3Btn'), false, 'online-lobby');
             }
         }
 
@@ -1043,7 +1062,7 @@
 
         function selectAvatar(playerKey, avatarChar, btn) {
             if (playerKey === 'online') {
-                playerAvatars['local'] = avatarChar; 
+                playerAvatars['local'] = avatarChar;
                 setActiveButton('onlineAvatarSelect', btn);
             } else {
                 playerAvatars[playerKey] = avatarChar;
@@ -1065,164 +1084,117 @@
             unreadMessageCount = reset ? 0 : unreadMessageCount + count;
             if (unreadMessageCount > 0) {
                 chatBadge.textContent = unreadMessageCount > 99 ? '99+' : unreadMessageCount;
-                chatBadge.style.display = 'flex'; 
-                chatOpenBtn.classList.add('new-message-alert'); 
+                chatBadge.style.display = 'flex';
+                chatOpenBtn.classList.add('new-message-alert');
             } else {
                 chatBadge.style.display = 'none';
-                chatOpenBtn.classList.remove('new-message-alert'); 
+                chatOpenBtn.classList.remove('new-message-alert');
             }
         }
 
         function handleBack(isUserInitiated = false) {
-            if (chatOverlay.classList.contains('visible')) {
-                toggleChatOverlay(false);
-                return;
-            }
+            if (chatOverlay.classList.contains('visible')) { toggleChatOverlay(false); return; }
             stopTimer();
             if (currentScreen === 'game-screen') {
-                if (mode === 'ai') showScreen('ai-config');
-                else showScreen('local-config');
+                mode === 'ai' ? showScreen('ai-config') : showScreen('local-config');
             } else if (['online-lobby', 'local-config', 'ai-config'].includes(currentScreen)) {
                 if (mode === 'online' && roomId && db) {
-                    db.ref('games/' + roomId).off();
-                    roomId = null; localPlayer = null; playerOJoined = false;
+                    db.ref('games/' + roomId).off(); roomId = null; localPlayer = null; playerOJoined = false;
                 }
                 showScreen('home-screen');
             }
         }
 
         function handleExitOnlineMode() {
-            if (!confirm("Exit game? Room will close if you are host.")) return;
+            if (!confirm("Are you sure you want to leave?")) return;
             stopTimer();
             if (mode === 'online' && roomId && db) {
-                db.ref('games/' + roomId).off(); 
+                db.ref('games/' + roomId).off();
                 if (localPlayer === 'X') db.ref('games/' + roomId).remove();
-                else db.ref('games/' + roomId).update({ playerO: false, playerOName: 'Left' });
+                else db.ref('games/' + roomId).update({ playerO: false });
                 roomId = null; localPlayer = null; playerOJoined = false;
             }
             showScreen('online-lobby');
+            startGameOnlineBtn.style.display = 'none';
         }
 
+        // --- TIMER LOGIC ---
         function startTimer(startTime) {
-            stopTimer(); 
+            stopTimer();
             timerInterval = setInterval(() => {
                 const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
                 const remainingSec = TIME_LIMIT_SECONDS - elapsedSec;
                 if (remainingSec <= 0) { stopTimer(); handleTimeLimitReached(); return; }
                 timerValueSpan.textContent = `${remainingSec}s`;
-                timerValueSpan.style.color = remainingSec <= 5 ? '#f05a7f' : remainingSec <= 15 ? '#ff8e3c' : 'var(--color-text-light)';
+                timerValueSpan.style.color = remainingSec <= 5 ? '#f05a7f' : 'var(--color-text-light)';
             }, 1000);
         }
         
-        function stopTimer() {
-            if (timerInterval) clearInterval(timerInterval);
-            if (autoResetTimeout) clearTimeout(autoResetTimeout);
-            timerInterval = null; timerValueSpan.textContent = `${TIME_LIMIT_SECONDS}s`;
-        }
-
-        function resetLocalTimer() {
-            localMoveStartTime = Date.now();
-            if (['local', 'ai'].includes(mode) && gameActive) {
-                stopTimer(); startTimer(localMoveStartTime);
-            }
-        }
+        function stopTimer() { if (timerInterval) clearInterval(timerInterval); if (autoResetTimeout) clearTimeout(autoResetTimeout); }
+        function resetLocalTimer() { localMoveStartTime = Date.now(); if (['local', 'ai'].includes(mode) && gameActive) startTimer(localMoveStartTime); }
 
         function handleTimeLimitReached() {
-             if (mode === 'online') {
-                if (localPlayer === currentPlayer) {
-                    const winner = currentPlayer === 'X' ? 'O' : 'X';
-                    db.ref('games/' + roomId).once('value', snapshot => {
-                        const gameState = snapshot.val();
-                        if (!gameState || !gameState.gameActive) return;
-                        let s = gameState.scores;
-                        if (winner === 'X') s.scoreX++; else s.scoreO++;
-                        db.ref('games/' + roomId).update({ gameActive: false, scores: s });
-                    });
-                }
-            } else {
-                gameActive = false;
+             if (mode === 'online' && localPlayer === currentPlayer) {
                 const winner = currentPlayer === 'X' ? 'O' : 'X';
-                gameStatusP.innerHTML = `TIME OUT! <strong>${winner}</strong> WINS!`;
-                updateLocalScore(winner); triggerVibrate(200); playSoundEffect(winSound); drawBoard();
+                db.ref('games/' + roomId).once('value', snapshot => {
+                    const gameState = snapshot.val();
+                    if (!gameState?.gameActive) return;
+                    let s = gameState.scores; winner === 'X' ? s.scoreX++ : s.scoreO++;
+                    db.ref('games/' + roomId).update({ gameActive: false, currentPlayer: winner, scores: s });
+                });
+            } else {
+                gameActive = false; const winner = currentPlayer === 'X' ? 'O' : 'X';
+                gameStatusP.innerHTML = `TIME OUT! <strong>${playerNames[winner]}</strong> WINS!`;
+                updateLocalScore(winner); playSoundEffect(winSound); drawBoard();
             }
         }
         
-        function getWinLength(size) {
-            return size <= 3 ? 3 : size === 4 ? 4 : 5;
-        }
+        // --- Core Game Logic ---
+        function getWinLength(size) { return size <= 3 ? 3 : (size === 4 ? 4 : 5); }
 
         function setBoardSize(size, button, skipReset = false, location = 'local-config') {
-            const previousSize = boardSize;
-            boardSize = size;
-            gameDiv.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-            const containerWidth = Math.min(window.innerWidth * 0.95, 500);
-            let cellSize = (containerWidth / size) - (size === 3 ? 5 : 4);
-            gameDiv.style.setProperty('--cell-size', `${cellSize}px`);
-            gameDiv.style.setProperty('--font-size', `${cellSize / 2.5}px`);
+            const previousSize = boardSize; boardSize = size;
             gameDiv.style.setProperty('--board-size', size);
             const sizeControlsId = location === 'online-lobby' ? 'onlineBoardSizeControls' : (location === 'ai-config' ? 'aiBoardSizeControls' : 'boardSizeControls');
             if (button) setActiveButton(sizeControlsId, button);
-            if (location === 'online-lobby') {
-                lobbyBoardSizeSpan.textContent = `${size}x${size}`;
-                if (roomId && localPlayer === 'X' && db && !skipReset && previousSize !== size) {
-                    db.ref('games/' + roomId).update({ boardSize: size, board: Array(size * size).fill(''), gameActive: true });
-                }
-            }
-            if (!skipReset) { board = Array(size * size).fill(''); drawBoard(); }
+            if (!skipReset && previousSize !== size) board = Array(size * size).fill('');
+            drawBoard();
         }
         
         function startGame(newMode, difficulty, button) {
-            mode = newMode;
-            if (difficulty) { aiDifficulty = difficulty; setActiveButton('aiDifficultyControls', button); }
-            if (mode === 'local') setActiveButton('modeControls', button);
-            playerNames['X'] = document.getElementById(mode === 'ai' ? 'playerNameAIAI' : 'playerNameX').value || 'Player X';
-            playerNames['O'] = mode === 'ai' ? `AI (${aiDifficulty})` : document.getElementById('playerNameO').value || 'Player O';
-            updatePlayerNamesDisplay(); resetGame();
+            mode = newMode; if (difficulty) aiDifficulty = difficulty;
+            setActiveButton(difficulty ? 'aiDifficultyControls' : 'modeControls', button);
+            resetGame();
         }
 
         function drawBoard(finalResult = {}) {
             gameDiv.innerHTML = '';
             board.forEach((val, i) => {
                 const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.innerHTML = val ? `<strong>${val}</strong>` : '';
-                if (!gameActive && finalResult.winningIndices && finalResult.winningIndices.includes(i)) cell.classList.add('winner');
+                cell.className = 'cell'; cell.innerHTML = val ? `<strong>${val}</strong>` : '';
+                if (finalResult.winningIndices?.includes(i)) cell.classList.add('winner');
                 cell.onclick = () => handleClick(i);
                 gameDiv.appendChild(cell);
             });
             postGameActionsDiv.style.display = gameActive ? 'none' : 'block';
-            document.getElementById('rematchBtn').style.display = mode !== 'online' ? 'block' : 'none';
-            document.getElementById('rematchOnlineBtn').style.display = (mode === 'online' && !gameActive) ? 'block' : 'none';
-            if (mode === 'online' && localPlayer) {
-                if (!gameActive) {
-                    let msg = finalResult.winner === 'Draw' ? 'DRAW!' : `GAME OVER! ${finalResult.winner === localPlayer ? 'YOU' : 'OPPONENT'} WINS!`;
-                    gameStatusP.innerHTML = msg;
-                } else {
-                    gameStatusP.innerHTML = `YOU ARE ${localPlayer}. ${currentPlayer === localPlayer ? 'YOUR TURN!' : 'WAITING...'}`;
-                }
-            } else if (gameActive) {
+            if (gameActive) {
                 gameStatusP.innerHTML = `<strong>${playerNames[currentPlayer]}</strong>'S TURN.`;
+                if (mode === 'ai' && currentPlayer === 'O') setTimeout(aiMove, 500);
             }
-            if (mode === 'ai' && gameActive && currentPlayer === 'O') setTimeout(aiMove, 500);
         }
         
         function handleClick(index) {
             if (!gameActive || board[index] !== '') return;
-            triggerVibrate(30); 
             if (mode === 'online') {
-                if (currentPlayer !== localPlayer) return;
-                handleOnlineMove(index);
+                if (currentPlayer === localPlayer) handleOnlineMove(index);
             } else {
-                board[index] = currentPlayer;
-                playSoundEffect(clickSound, 0.5);
+                board[index] = currentPlayer; playSoundEffect(clickSound, 0.5);
                 const result = checkWinner(board, true);
                 if (result.winner) {
-                    gameActive = false; triggerVibrate([100, 50, 100]);
                     drawBoard(result); updateLocalScore(result.winner);
                     playSoundEffect(result.winner === 'Draw' ? drawSound : winSound);
                 } else {
-                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-                    drawBoard(); resetLocalTimer();
+                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X'; drawBoard(); resetLocalTimer();
                 }
             }
         }
@@ -1231,25 +1203,19 @@
             const size = boardSize; const N = getWinLength(size);
             const index = (r, c) => r * size + c;
             const isValid = (r, c) => r >= 0 && r < size && c >= 0 && c < size;
-            const checkLine = (r, c, dr, dc) => {
-                const player = currentBoard[index(r, c)]; if (!player) return null;
-                let win = [index(r, c)];
-                for (let k = 1; k < N; k++) {
-                    const nr = r + k * dr, nc = c + k * dc;
-                    if (!isValid(nr, nc) || currentBoard[index(nr, nc)] !== player) return null;
-                    win.push(index(nr, nc));
-                }
-                return { winner: player, winningIndices: win };
-            };
-            const dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+            const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
             for (let r = 0; r < size; r++) {
                 for (let c = 0; c < size; c++) {
-                    if (currentBoard[index(r, c)]) {
-                        for (let [dr, dc] of dirs) {
-                            if (isValid(r + (N - 1) * dr, c + (N - 1) * dc)) {
-                                const res = checkLine(r, c, dr, dc);
-                                if (res) { if (updateGlobalState) { gameActive = false; stopTimer(); } return res; }
+                    const p = currentBoard[index(r, c)];
+                    if (p) {
+                        for (let [dr, dc] of directions) {
+                            let win = [index(r, c)];
+                            for (let k = 1; k < N; k++) {
+                                let nr = r + k * dr, nc = c + k * dc;
+                                if (!isValid(nr, nc) || currentBoard[index(nr, nc)] !== p) { win = null; break; }
+                                win.push(index(nr, nc));
                             }
+                            if (win) { if (updateGlobalState) { gameActive = false; stopTimer(); } return { winner: p, winningIndices: win }; }
                         }
                     }
                 }
@@ -1263,12 +1229,6 @@
             else if (winner === 'O') scoreO.textContent = +scoreO.textContent + 1;
             else if (winner === 'Draw') scoreDraws.textContent = +scoreDraws.textContent + 1;
         }
-        
-        function updateOnlineScoreboard(scores) {
-            onlineScoreLocal.textContent = localPlayer === 'X' ? scores.scoreX : scores.scoreO;
-            onlineScoreOpponent.textContent = localPlayer === 'X' ? scores.scoreO : scores.scoreX;
-            onlineScoreDraws.textContent = scores.draws;
-        }
 
         function resetGame() {
             stopTimer(); board = Array(boardSize * boardSize).fill('');
@@ -1276,111 +1236,123 @@
         }
 
         function setActiveButton(containerId, activeButton) {
-            document.querySelectorAll(`#${containerId} button, #${containerId} .avatar-option`).forEach(btn => {
-                btn.classList.remove('active', 'selected');
-            });
+            document.querySelectorAll(`#${containerId} button, #${containerId} .avatar-option`).forEach(btn => btn.classList.remove('active', 'selected'));
             if (activeButton) activeButton.classList.add('active', 'selected');
         }
         
         function handleRematch() { resetGame(); }
         
-        function handleRematchOnline() {
-            if (!db || !roomId || gameActive) return;
-            db.ref('games/' + roomId).update({ rematchRequest: localPlayer });
-            rematchOnlineBtn.textContent = "WAITING..."; rematchOnlineBtn.disabled = true;
-        }
-
-        function acceptRematch() {
-            db.ref('games/' + roomId).update({ board: Array(boardSize * boardSize).fill(''), currentPlayer: 'X', gameActive: true, rematchRequest: false });
-        }
-
-        function sendChatMessage(message = null, isReaction = false, isSystem = false) {
-            if (!db || !roomId) return;
-            const final = message || chatInput.value.trim(); if (!final) return;
-            db.ref('games/' + roomId + '/chat').push({ sender: isSystem ? 'System' : localPlayer, message: final, isReaction: isReaction, timestamp: firebase.database.ServerValue.TIMESTAMP });
-            if(!isSystem) chatInput.value = '';
-        }
-        
-        function syncChat() {
-            db.ref('games/' + roomId + '/chat').off(); chatMessages.innerHTML = '';
-            let initial = false;
-            db.ref('games/' + roomId + '/chat').once('value', s => {
-                s.forEach(c => displayMsg(c.val(), false)); initial = true;
-            });
-            db.ref('games/' + roomId + '/chat').on('child_added', s => {
-                if (initial) displayMsg(s.val(), true);
-            });
-        }
-
-        function displayMsg(data, isNew) {
-            const p = document.createElement('p');
-            p.textContent = `[${data.sender}]: ${data.message}`;
-            p.className = data.sender === 'X' ? 'chat-message-x' : data.sender === 'O' ? 'chat-message-o' : 'chat-message-system';
-            chatMessages.appendChild(p); chatMessages.scrollTop = chatMessages.scrollHeight;
-            if (isNew && data.sender !== localPlayer && !chatOverlay.classList.contains('visible')) updateChatBadge(1);
-        }
-
+        // --- ONLINE LOBBY & CHAT ---
         function createGame() {
             roomId = roomIdInput.value.trim() || Math.random().toString(36).substring(2, 8).toUpperCase();
-            localPlayer = 'X'; 
+            localPlayer = 'X'; playerNames['X'] = document.getElementById('onlinePlayerName').value || 'Player X';
             db.ref('games/' + roomId).set({
-                board: Array(boardSize * boardSize).fill(''), boardSize: boardSize, currentPlayer: 'X', gameActive: true, playerX: true, playerO: false,
-                playerXName: document.getElementById('onlinePlayerName').value || 'X', scores: { scoreX: 0, scoreO: 0, draws: 0 }, lastMoveTime: firebase.database.ServerValue.TIMESTAMP
+                board: Array(boardSize * boardSize).fill(''), boardSize: boardSize,
+                currentPlayer: 'X', gameActive: true, playerX: true, playerO: false,
+                playerXName: playerNames['X'], scores: { scoreX: 0, scoreO: 0, draws: 0 },
+                lastMoveTime: firebase.database.ServerValue.TIMESTAMP
             }).then(() => { syncGame(); syncChat(); showScreen('online-lobby'); });
         }
 
         function joinGame() {
             roomId = roomIdInput.value.trim(); localPlayer = 'O';
-            db.ref('games/' + roomId).once('value', s => {
-                if (s.exists() && !s.val().playerO) {
-                    db.ref('games/' + roomId).update({ playerO: true, playerOName: document.getElementById('onlinePlayerName').value || 'O' })
-                    .then(() => { syncChat(); syncGame(); showScreen('online-lobby'); });
+            playerNames['O'] = document.getElementById('onlinePlayerName').value || 'Player O';
+            db.ref('games/' + roomId).once('value', snapshot => {
+                if (snapshot.exists() && !snapshot.val().playerO) {
+                    db.ref('games/' + roomId).update({ playerO: true, playerOName: playerNames['O'] })
+                    .then(() => { syncGame(); syncChat(); showScreen('online-lobby'); });
                 }
             });
         }
 
+        function syncChat() {
+            db.ref('games/' + roomId + '/chat').on('child_added', snapshot => {
+                const m = snapshot.val(); const p = document.createElement('p');
+                p.textContent = `[${m.sender}]: ${m.message}`;
+                p.className = m.sender === 'X' ? 'chat-message-x' : 'chat-message-o';
+                chatMessages.appendChild(p); chatMessages.scrollTop = chatMessages.scrollHeight;
+                if (m.sender !== localPlayer && !chatOverlay.classList.contains('visible')) updateChatBadge(1);
+            });
+        }
+
+        function sendChatMessage(message = null) {
+            const final = message || chatInput.value.trim();
+            if (final && db && roomId) {
+                db.ref('games/' + roomId + '/chat').push({ sender: localPlayer, message: final });
+                chatInput.value = '';
+            }
+        }
+
         function syncGame() {
-            db.ref('games/' + roomId).on('value', s => {
-                if (!s.exists()) { handleExitOnlineMode(); return; }
-                const data = s.val(); board = data.board; currentPlayer = data.currentPlayer; gameActive = data.gameActive;
-                if (data.rematchRequest && data.rematchRequest !== localPlayer && !gameActive) {
-                    rematchOnlineBtn.textContent = "ACCEPT REMATCH"; rematchOnlineBtn.onclick = acceptRematch;
-                }
-                if (data.scores) updateOnlineScoreboard(data.scores);
+            db.ref('games/' + roomId).on('value', snapshot => {
+                const gs = snapshot.val(); if (!gs) return;
+                board = gs.board; currentPlayer = gs.currentPlayer; gameActive = gs.gameActive;
+                playerOJoined = gs.playerO;
+                if (gameActive && localPlayer === currentPlayer) startTimer(gs.lastMoveTime);
                 drawBoard(checkWinner(board, false));
             });
         }
 
         function handleOnlineMove(index) {
-            const b = board.slice(); b[index] = localPlayer;
-            const res = checkWinner(b, false);
-            let update = { board: b, currentPlayer: localPlayer === 'X' ? 'O' : 'X', lastMoveTime: firebase.database.ServerValue.TIMESTAMP };
-            if (res.winner) { update.gameActive = false; }
+            const nb = board.slice(); nb[index] = localPlayer;
+            const res = checkWinner(nb, false);
+            const update = { board: nb, currentPlayer: localPlayer === 'X' ? 'O' : 'X', lastMoveTime: firebase.database.ServerValue.TIMESTAMP };
+            if (res.winner) update.gameActive = false;
             db.ref('games/' + roomId).update(update);
         }
-        
-        function aiMove() {
-            if (!gameActive || currentPlayer !== 'O') return;
-            let empty = board.map((v, i) => v === '' ? i : -1).filter(i => i !== -1);
-            let move = empty[Math.floor(Math.random() * empty.length)];
-            board[move] = 'O';
-            const res = checkWinner(board, true);
-            if (res.winner) { gameActive = false; drawBoard(res); updateLocalScore(res.winner); }
-            else { currentPlayer = 'X'; drawBoard(); resetLocalTimer(); }
+
+        // --- AI MINIMAX ---
+        function minimax(currentBoard, player) {
+            let res = checkWinner(currentBoard, false);
+            if (res.winner === 'X') return -10; if (res.winner === 'O') return 10; if (res.winner === 'Draw') return 0;
+            let spots = currentBoard.map((v, i) => v === '' ? i : -1).filter(i => i !== -1);
+            if (player === 'O') {
+                let best = -Infinity;
+                for (let i of spots) { let nb = currentBoard.slice(); nb[i] = 'O'; best = Math.max(best, minimax(nb, 'X')); }
+                return best;
+            } else {
+                let best = Infinity;
+                for (let i of spots) { let nb = currentBoard.slice(); nb[i] = 'X'; best = Math.min(best, minimax(nb, 'O')); }
+                return best;
+            }
         }
 
-        function toggleMute() {
-            isMuted = !isMuted;
-            if (isMuted) { stopMusic(menuMusic); stopMusic(gameMusic); stopMusic(retroMusic); }
-            else manageMusic(currentScreen);
-            document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊'; 
-        } 
-        
-        function setAppHeight() {
-            document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+        function aiMove() {
+            if (!gameActive || currentPlayer !== 'O') return;
+            let spots = board.map((v, i) => v === '' ? i : -1).filter(i => i !== -1);
+            let move = -1;
+            if (aiDifficulty === 'hard') {
+                let best = -Infinity;
+                for (let i of spots) {
+                    let nb = board.slice(); nb[i] = 'O';
+                    let score = minimax(nb, 'X');
+                    if (score > best) { best = score; move = i; }
+                }
+            } else {
+                move = spots[Math.floor(Math.random() * spots.length)];
+            }
+            if (move !== -1) handleClick(move);
         }
-        window.addEventListener('resize', setAppHeight);
-        setAppHeight(); 
+
+        function toggleMute() { isMuted = !isMuted; manageMusic(currentScreen); document.getElementById('muteBtn').textContent = isMuted ? '🔇' : '🔊'; }
+
+        function setAppHeight() { document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`); }
+        window.addEventListener('resize', setAppHeight); setAppHeight();
+        
+        document.addEventListener('DOMContentLoaded', () => {
+             setBoardSize(3, document.getElementById('size3x3Btn'), false, 'local-config');
+             chatInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendChatMessage(); });
+        });
+
+    </script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('SW Registered!', reg))
+            .catch(err => console.log('SW Failed!', err));
+        });
+      }
     </script>
 </body>
 </html>
